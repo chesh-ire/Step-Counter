@@ -27,7 +27,9 @@ class StepCounterService : Service(), SensorEventListener {
 
     private var initialStepCount = -1
     private var currentDaySteps = 0
+    private var stepsAtStartOfHour = -1
     private var lastUpdateDate = -1L
+    private var currentHour = -1
 
     private val midnightReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -59,6 +61,7 @@ class StepCounterService : Service(), SensorEventListener {
             val todayEntry = repository.getStepsForToday().first()
             currentDaySteps = todayEntry?.steps ?: 0
             lastUpdateDate = getStartOfDay()
+            currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         }
     }
 
@@ -72,11 +75,20 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun checkAndResetSteps() {
+        val now = Calendar.getInstance()
         val today = getStartOfDay()
+        val hour = now.get(Calendar.HOUR_OF_DAY)
+
         if (lastUpdateDate != -1L && today > lastUpdateDate) {
             currentDaySteps = 0
             initialStepCount = -1 
+            stepsAtStartOfHour = -1
             lastUpdateDate = today
+            currentHour = hour
+        } else if (hour != currentHour) {
+            // New hour started, reset hourly baseline
+            stepsAtStartOfHour = -1
+            currentHour = hour
         }
     }
 
@@ -92,15 +104,20 @@ class StepCounterService : Service(), SensorEventListener {
             if (initialStepCount == -1) {
                 initialStepCount = totalStepsSinceBoot
             }
+            
+            if (stepsAtStartOfHour == -1) {
+                stepsAtStartOfHour = totalStepsSinceBoot
+            }
 
             val stepsSinceLastChange = totalStepsSinceBoot - initialStepCount
+            val stepsInCurrentHour = totalStepsSinceBoot - stepsAtStartOfHour
+            
             initialStepCount = totalStepsSinceBoot
             
             if (stepsSinceLastChange > 0) {
                 currentDaySteps += stepsSinceLastChange
-                updateDatabase(currentDaySteps, stepsSinceLastChange)
+                updateDatabase(currentDaySteps, stepsSinceLastChange, stepsInCurrentHour)
                 
-                // Update last activity timestamp for nudge logic
                 serviceScope.launch {
                     val app = application as StepCounterApp
                     app.goalPreferences.updateLastActivityTimestamp(System.currentTimeMillis())
@@ -109,10 +126,11 @@ class StepCounterService : Service(), SensorEventListener {
         }
     }
 
-    private fun updateDatabase(totalSteps: Int, deltaSteps: Int) {
+    private fun updateDatabase(totalSteps: Int, deltaSteps: Int, stepsInHour: Int) {
         serviceScope.launch {
             val repository = (application as StepCounterApp).repository
             repository.updateSteps(totalSteps)
+            repository.updateHourlySteps(stepsInHour)
             
             val caloriesBurned = (deltaSteps * 0.04).toInt()
             if (caloriesBurned > 0) {

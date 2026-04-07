@@ -22,7 +22,8 @@ class StepCounterApp : Application() {
             database.stepDao(),
             database.waterDao(),
             database.calorieDao(),
-            database.weightDao()
+            database.weightDao(),
+            database.foodDao()
         )
     }
     val goalPreferences by lazy { GoalPreferences(this) }

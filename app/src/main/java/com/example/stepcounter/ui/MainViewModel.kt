@@ -3,9 +3,7 @@ package com.example.stepcounter.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.stepcounter.data.local.entities.CalorieType
-import com.example.stepcounter.data.local.entities.StepEntry
-import com.example.stepcounter.data.local.entities.WeightEntry
+import com.example.stepcounter.data.local.entities.*
 import com.example.stepcounter.data.preferences.GoalPreferences
 import com.example.stepcounter.data.preferences.UserGoals
 import com.example.stepcounter.data.repository.HealthRepository
@@ -24,6 +22,10 @@ class MainViewModel(
         .map { it?.steps ?: 0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    val todayDistanceKm = todaySteps
+        .map { steps -> (steps * 0.000762) } // Average step length 0.762 meters
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
     val todayWater = repository.getWaterForToday()
         .map { list -> list.sumOf { it.amountMl } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
@@ -39,6 +41,35 @@ class MainViewModel(
     val latestWeight = repository.getLatestWeight()
         .map { it?.weightKg ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    // Food Logging
+    private val _foodSearchResults = MutableStateFlow<List<FoodItem>>(emptyList())
+    val foodSearchResults: StateFlow<List<FoodItem>> = _foodSearchResults.asStateFlow()
+
+    val todayFoodConsumption = repository.getFoodConsumptionToday()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            repository.preseedFoodDatabase()
+        }
+    }
+
+    fun searchFood(query: String) {
+        viewModelScope.launch {
+            if (query.length >= 2) {
+                _foodSearchResults.value = repository.searchFood(query)
+            } else {
+                _foodSearchResults.value = emptyList()
+            }
+        }
+    }
+
+    fun logFood(foodItem: FoodItem, amountGrams: Int) {
+        viewModelScope.launch {
+            repository.logFoodConsumption(foodItem.name, amountGrams, foodItem.caloriesPer100g)
+        }
+    }
 
     // Historical Data for Analytics
     val weightHistory = repository.getAllWeightEntries()

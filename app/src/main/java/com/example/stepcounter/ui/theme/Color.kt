@@ -2,54 +2,72 @@ package com.example.stepcounter.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Vibrant Health-focused Color Scheme
-val PrimaryLight = Color(0xFF006D3B)
-val OnPrimaryLight = Color(0xFFFFFFFF)
-val PrimaryContainerLight = Color(0xFF98F7B5)
-val OnPrimaryContainerLight = Color(0xFF00210E)
+// Gamified Dark Navy Theme
+val DeepNavy = Color(0xFF0F172A)
+val CardNavy = Color(0xFF1E293B)
+val AccentCyan = Color(0xFF22D3EE)
+val AccentBlue = Color(0xFF3B82F6)
+val AccentIndigo = Color(0xFF6366F1)
+val TextWhite = Color(0xFFF8FAFC)
+val TextGray = Color(0xFF94A3B8)
 
-val SecondaryLight = Color(0xFF4F6354)
-val OnSecondaryLight = Color(0xFFFFFFFF)
-val SecondaryContainerLight = Color(0xFFD2E8D5)
-val OnSecondaryContainerLight = Color(0xFF0C1F13)
+val StepCyan = Color(0xFF06B6D4)
+val WaterBlue = Color(0xFF3B82F6)
+val CalorieOrange = Color(0xFFF97316)
+val DistancePink = Color(0xFFEC4899)
+val WeightIndigo = Color(0xFF6366F1)
 
-val TertiaryLight = Color(0xFF3B6470)
-val OnTertiaryLight = Color(0xFFFFFFFF)
-val TertiaryContainerLight = Color(0xFFBEEAF7)
-val OnTertiaryContainerLight = Color(0xFF001F26)
+val GradientBlueStart = Color(0xFF1E293B)
+val GradientBlueEnd = Color(0xFF0F172A)
 
-val ErrorLight = Color(0xFFBA1A1A)
-val OnErrorLight = Color(0xFFFFFFFF)
-val ErrorContainerLight = Color(0xFFFFDAD6)
-val OnErrorContainerLight = Color(0xFF410002)
+// Material 3 Mappings - Dark
+val PrimaryDark = AccentCyan
+val OnPrimaryDark = DeepNavy
+val PrimaryContainerDark = CardNavy
+val OnPrimaryContainerDark = TextWhite
 
-val BackgroundLight = Color(0xFFFBFDF8)
-val OnBackgroundLight = Color(0xFF191C19)
-val SurfaceLight = Color(0xFFFBFDF8)
-val OnSurfaceLight = Color(0xFF191C19)
+val SecondaryDark = AccentBlue
+val OnSecondaryDark = TextWhite
+val SecondaryContainerDark = Color(0xFF334155)
+val OnSecondaryContainerDark = TextWhite
 
-// Dark Scheme
-val PrimaryDark = Color(0xFF7DDA9B)
-val OnPrimaryDark = Color(0xFF00391C)
-val PrimaryContainerDark = Color(0xFF00522B)
-val OnPrimaryContainerDark = Color(0xFF98F7B5)
+val TertiaryDark = AccentIndigo
+val OnTertiaryDark = TextWhite
+val TertiaryContainerDark = Color(0xFF312E81)
+val OnTertiaryContainerDark = TextWhite
 
-val SecondaryDark = Color(0xFFB6CCBA)
-val OnSecondaryDark = Color(0xFF213527)
-val SecondaryContainerDark = Color(0xFF374B3D)
-val OnSecondaryContainerDark = Color(0xFFD2E8D5)
+val ErrorDark = Color(0xFFF87171)
+val OnErrorDark = Color(0xFF450A0A)
+val ErrorContainerDark = Color(0xFF7F1D1D)
+val OnErrorContainerDark = Color(0xFFFECACA)
 
-val TertiaryDark = Color(0xFFA2CEDB)
-val OnTertiaryDark = Color(0xFF033541)
-val TertiaryContainerDark = Color(0xFF224C58)
-val OnTertiaryContainerDark = Color(0xFFBEEAF7)
+val BackgroundDark = DeepNavy
+val OnBackgroundDark = TextWhite
+val SurfaceDark = CardNavy
+val OnSurfaceDark = TextWhite
 
-val ErrorDark = Color(0xFFFFB4AB)
-val OnErrorDark = Color(0xFF690005)
-val ErrorContainerDark = Color(0xFF93000A)
-val OnErrorContainerDark = Color(0xFFFFDAD6)
+// Material 3 Mappings - Light (Fallback to similar tones)
+val PrimaryLight = Color(0xFF0891B2)
+val OnPrimaryLight = Color.White
+val PrimaryContainerLight = Color(0xFFCFFAFE)
+val OnPrimaryContainerLight = Color(0xFF083344)
 
-val BackgroundDark = Color(0xFF191C19)
-val OnBackgroundDark = Color(0xFFE1E3DF)
-val SurfaceDark = Color(0xFF191C19)
-val OnSurfaceDark = Color(0xFFE1E3DF)
+val SecondaryLight = Color(0xFF2563EB)
+val OnSecondaryLight = Color.White
+val SecondaryContainerLight = Color(0xFFDBEAFE)
+val OnSecondaryContainerLight = Color(0xFF1E3A8A)
+
+val TertiaryLight = Color(0xFF4F46E5)
+val OnTertiaryLight = Color.White
+val TertiaryContainerLight = Color(0xFFE0E7FF)
+val OnTertiaryContainerLight = Color(0xFF312E81)
+
+val ErrorLight = Color(0xFFDC2626)
+val OnErrorLight = Color.White
+val ErrorContainerLight = Color(0xFFFEE2E2)
+val OnErrorContainerLight = Color(0xFF7F1D1D)
+
+val BackgroundLight = Color(0xFFF1F5F9)
+val OnBackgroundLight = Color(0xFF0F172A)
+val SurfaceLight = Color.White
+val OnSurfaceLight = Color(0xFF0F172A)

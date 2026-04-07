@@ -1,206 +1,216 @@
 package com.example.stepcounter.ui.analytics
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Insights
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.stepcounter.ui.MainViewModel
+import com.example.stepcounter.ui.dashboard.BottomNavigationBar
+import com.example.stepcounter.ui.theme.*
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToHome: () -> Unit,
+    onNavigateToWater: () -> Unit,
+    onNavigateToGoals: () -> Unit,
+    onNavigateToProfile: () -> Unit
 ) {
     val weightHistory by viewModel.weightHistory.collectAsStateWithLifecycle()
-    val stepHistory by viewModel.stepHistory.collectAsStateWithLifecycle(initialValue = emptyList())
-    val insights by viewModel.insights.collectAsStateWithLifecycle()
+    val stepHistory by viewModel.stepHistory.collectAsStateWithLifecycle()
     val userGoals by viewModel.userGoals.collectAsStateWithLifecycle()
-    
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val latestWeight by viewModel.latestWeight.collectAsStateWithLifecycle()
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = DeepNavy,
         topBar = {
             TopAppBar(
-                title = { Text("Health Analytics", fontWeight = FontWeight.Bold) },
+                title = { Text("Weight Progress", color = TextWhite, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = TextWhite)
                     }
                 },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        contentWindowInsets = WindowInsets.systemBars
+        bottomBar = {
+            BottomNavigationBar(
+                currentRoute = "stats",
+                onHome = onNavigateToHome,
+                onStats = {},
+                onWater = onNavigateToWater,
+                onGoals = onNavigateToGoals,
+                onProfile = onNavigateToProfile
+            )
+        }
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            item { Spacer(modifier = Modifier.height(8.dp)) }
-
-            // Smart Insights Section
             item {
-                Text(
-                    text = "Smart Insights",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    insights.forEach { insight ->
-                        InsightCard(insight)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Column {
+                        Text("Current Weight", color = TextGray, fontSize = 14.sp)
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                text = if (latestWeight > 0) String.format(Locale.getDefault(), "%.1f", latestWeight) else "--",
+                                color = TextWhite,
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Text(
+                                text = " kg",
+                                color = TextGray,
+                                fontSize = 18.sp,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                        }
                     }
-                    if (insights.isEmpty()) {
-                        Text(
-                            "No insights yet. Keep logging your data!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(
+                        text = "Goal: ${userGoals.weightGoalKg} kg",
+                        color = AccentCyan,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
                 }
             }
 
-            // Weight Trend Chart
+            item { Spacer(modifier = Modifier.height(32.dp)) }
+
+            // Weight Chart Card
             item {
-                AnalyticsChartCard(
-                    title = "Weight Trend (Target: ${userGoals.weightGoalKg}kg)",
-                    data = weightHistory.map { it.weightKg.toFloat() },
-                    goalValue = userGoals.weightGoalKg.toFloat(),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                WeightChartCard(weightHistory.map { it.weightKg.toFloat() }, userGoals.weightGoalKg.toFloat())
             }
+
+            item { Spacer(modifier = Modifier.height(32.dp)) }
+
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Weight Trend", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Today", color = TextGray, fontSize = 14.sp)
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
             // Step Progress Chart
             item {
-                AnalyticsChartCard(
-                    title = "Step History (Goal: ${userGoals.stepGoal})",
-                    data = stepHistory.map { it.steps.toFloat() },
-                    goalValue = userGoals.stepGoal.toFloat(),
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                StepHistoryChart(stepHistory.map { it.steps.toFloat() }, userGoals.stepGoal.toFloat())
             }
             
-            item { 
-                Spacer(modifier = Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+            item { Spacer(modifier = Modifier.height(20.dp)) }
+        }
+    }
+}
+
+@Composable
+fun WeightChartCard(data: List<Float>, goal: Float) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNavy)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (data.size < 2) {
+                    Text("Not enough data to show weight trend", color = TextGray, fontSize = 12.sp)
+                } else {
+                    AnalyticsLineChart(
+                        data = data,
+                        goalValue = goal,
+                        color = AccentCyan
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Today", color = TextGray, fontSize = 12.sp)
+                Text("Week", color = TextGray, fontSize = 12.sp)
+                Text("Month", color = TextGray, fontSize = 12.sp)
             }
         }
     }
 }
 
 @Composable
-fun InsightCard(insight: String) {
+fun StepHistoryChart(data: List<Float>, goal: Float) {
     Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-            contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-        ),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = CardNavy)
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Rounded.Insights,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(text = insight, style = MaterialTheme.typography.bodyLarge)
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text("Step Progress", color = TextWhite, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth().height(120.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (data.size < 2) {
+                    Text("Recording your first steps...", color = TextGray, fontSize = 12.sp)
+                } else {
+                    AnalyticsLineChart(
+                        data = data,
+                        goalValue = goal,
+                        color = AccentBlue
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun AnalyticsChartCard(
-    title: String,
+fun AnalyticsLineChart(
     data: List<Float>,
     goalValue: Float? = null,
     color: Color
 ) {
-    Card(
-        shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-        )
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            if (data.size < 2) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Need more data points to show trend",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                SimpleLineChart(
-                    data = data,
-                    goalValue = goalValue,
-                    color = color,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun SimpleLineChart(
-    data: List<Float>,
-    goalValue: Float? = null,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height
         
         val maxDataVal = data.maxOrNull() ?: 1f
         val minDataVal = data.minOrNull() ?: 0f
         
-        // Include goal in range calculation
         val maxVal = if (goalValue != null) maxOf(maxDataVal, goalValue) else maxDataVal
         val minVal = if (goalValue != null) minOf(minDataVal, goalValue) else minDataVal
         val range = (maxVal - minVal).coerceAtLeast(1f)
@@ -212,18 +222,34 @@ fun SimpleLineChart(
             )
         }
 
-        // Draw Goal Line
+        // Area under path
+        val fillPath = Path().apply {
+            moveTo(points[0].x, height)
+            points.forEach { lineTo(it.x, it.y) }
+            lineTo(points.last().x, height)
+            close()
+        }
+        
+        drawPath(
+            path = fillPath,
+            brush = Brush.verticalGradient(
+                listOf(color.copy(alpha = 0.3f), Color.Transparent)
+            )
+        )
+
+        // Goal Line
         if (goalValue != null) {
             val goalY = height - ((goalValue - minVal) / range) * height
             drawLine(
-                color = Color.Gray.copy(alpha = 0.5f),
+                color = TextGray.copy(alpha = 0.3f),
                 start = Offset(0f, goalY),
                 end = Offset(width, goalY),
-                strokeWidth = 2.dp.toPx(),
+                strokeWidth = 1.dp.toPx(),
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
             )
         }
 
+        // Main Path
         val path = Path().apply {
             moveTo(points[0].x, points[0].y)
             for (i in 1 until points.size) {
@@ -234,13 +260,19 @@ fun SimpleLineChart(
         drawPath(
             path = path,
             color = color,
-            style = Stroke(width = 3.dp.toPx())
+            style = Stroke(width = 3.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
         )
 
+        // Points
         points.forEach { point ->
             drawCircle(
                 color = color,
-                radius = 5.dp.toPx(),
+                radius = 4.dp.toPx(),
+                center = point
+            )
+            drawCircle(
+                color = DeepNavy,
+                radius = 2.dp.toPx(),
                 center = point
             )
         }

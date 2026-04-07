@@ -17,11 +17,12 @@ import com.example.stepcounter.service.StepCounterService
 import com.example.stepcounter.ui.MainViewModel
 import com.example.stepcounter.ui.analytics.AnalyticsScreen
 import com.example.stepcounter.ui.dashboard.DashboardScreen
-import com.example.stepcounter.ui.logging.CalorieLoggingDialog
+import com.example.stepcounter.ui.logging.FoodLoggingDialog
 import com.example.stepcounter.ui.logging.WaterLoggingDialog
 import com.example.stepcounter.ui.logging.WeightLoggingDialog
-import com.example.stepcounter.ui.settings.GoalSettingDialog
+import com.example.stepcounter.ui.settings.GoalsScreen
 import com.example.stepcounter.ui.theme.StepCounterTheme
+import com.example.stepcounter.ui.water.WaterTrackerScreen
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -57,11 +58,11 @@ class MainActivity : ComponentActivity() {
         val navController = rememberNavController()
         
         var showWaterDialog by remember { mutableStateOf(false) }
-        var showCalorieDialog by remember { mutableStateOf(false) }
+        var showFoodDialog by remember { mutableStateOf(false) }
         var showWeightDialog by remember { mutableStateOf(false) }
-        var showGoalDialog by remember { mutableStateOf(false) }
 
         val userGoals by viewModel.userGoals.collectAsStateWithLifecycle()
+        val foodSearchResults by viewModel.foodSearchResults.collectAsStateWithLifecycle()
 
         val activityRecognitionPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             rememberPermissionState(Manifest.permission.ACTIVITY_RECOGNITION)
@@ -85,21 +86,48 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        NavHost(navController = navController, startDestination = "dashboard") {
-            composable("dashboard") {
+        NavHost(navController = navController, startDestination = "home") {
+            composable("home") {
                 DashboardScreen(
                     viewModel = viewModel,
-                    onLogWater = { showWaterDialog = true },
-                    onLogCalories = { showCalorieDialog = true },
-                    onLogWeight = { showWeightDialog = true },
-                    onNavigateToAnalytics = { navController.navigate("analytics") },
-                    onSetGoals = { showGoalDialog = true }
+                    onNavigateToWater = { navController.navigate("water") },
+                    onNavigateToAnalytics = { navController.navigate("stats") },
+                    onSetGoals = { navController.navigate("goals") },
+                    onNavigateToProfile = { /* TODO */ },
+                    onLogFood = { showFoodDialog = true }
                 )
             }
-            composable("analytics") {
+            composable("stats") {
                 AnalyticsScreen(
                     viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = { navController.popBackStack() },
+                    onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+                    onNavigateToWater = { navController.navigate("water") },
+                    onNavigateToGoals = { navController.navigate("goals") },
+                    onNavigateToProfile = { /* TODO */ }
+                )
+            }
+            composable("water") {
+                WaterTrackerScreen(
+                    viewModel = viewModel,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+                    onNavigateToStats = { navController.navigate("stats") },
+                    onNavigateToGoals = { navController.navigate("goals") },
+                    onNavigateToProfile = { /* TODO */ },
+                    onLogWater = { showWaterDialog = true }
+                )
+            }
+            composable("goals") {
+                GoalsScreen(
+                    currentGoals = userGoals,
+                    onBack = { navController.popBackStack() },
+                    onSave = { goals ->
+                        viewModel.updateStepGoal(goals.stepGoal)
+                        viewModel.updateWaterGoal(goals.waterGoalMl)
+                        viewModel.updateWeightGoal(goals.weightGoalKg)
+                        navController.popBackStack()
+                    }
                 )
             }
         }
@@ -111,10 +139,12 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        if (showCalorieDialog) {
-            CalorieLoggingDialog(
-                onDismiss = { showCalorieDialog = false },
-                onConfirm = { amount, type -> viewModel.addCalorie(amount, type) }
+        if (showFoodDialog) {
+            FoodLoggingDialog(
+                searchResults = foodSearchResults,
+                onSearch = { viewModel.searchFood(it) },
+                onLog = { food, amount -> viewModel.logFood(food, amount) },
+                onDismiss = { showFoodDialog = false }
             )
         }
 
@@ -122,18 +152,6 @@ class MainActivity : ComponentActivity() {
             WeightLoggingDialog(
                 onDismiss = { showWeightDialog = false },
                 onConfirm = { viewModel.addWeight(it) }
-            )
-        }
-
-        if (showGoalDialog) {
-            GoalSettingDialog(
-                currentGoals = userGoals,
-                onDismiss = { showGoalDialog = false },
-                onConfirm = { goals ->
-                    viewModel.updateStepGoal(goals.stepGoal)
-                    viewModel.updateWaterGoal(goals.waterGoalMl)
-                    viewModel.updateWeightGoal(goals.weightGoalKg)
-                }
             )
         }
     }

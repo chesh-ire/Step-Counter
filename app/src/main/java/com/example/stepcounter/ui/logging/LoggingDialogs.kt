@@ -1,13 +1,18 @@
 package com.example.stepcounter.ui.logging
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.stepcounter.data.local.entities.CalorieType
+import com.example.stepcounter.data.local.entities.FoodItem
 
 @Composable
 fun WaterLoggingDialog(
@@ -56,51 +61,69 @@ fun WaterLoggingDialog(
 }
 
 @Composable
-fun CalorieLoggingDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (Int, CalorieType) -> Unit
+fun FoodLoggingDialog(
+    searchResults: List<FoodItem>,
+    onSearch: (String) -> Unit,
+    onLog: (FoodItem, Int) -> Unit,
+    onDismiss: () -> Unit
 ) {
-    var amount by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf(CalorieType.CONSUMED) }
+    var query by remember { mutableStateOf("") }
+    var selectedFood by remember { mutableStateOf<FoodItem?>(null) }
+    var amountGrams by remember { mutableStateOf("100") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Calories") },
+        title = { Text("Log Food") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    FilterChip(
-                        selected = type == CalorieType.CONSUMED,
-                        onClick = { type = CalorieType.CONSUMED },
-                        label = { Text("Consumed") },
-                        modifier = Modifier.weight(1f)
+                if (selectedFood == null) {
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = { 
+                            query = it
+                            onSearch(it)
+                        },
+                        label = { Text("Search Food (e.g. Apple, Rice)") },
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    FilterChip(
-                        selected = type == CalorieType.BURNED,
-                        onClick = { type = CalorieType.BURNED },
-                        label = { Text("Burned") },
-                        modifier = Modifier.weight(1f)
+                    
+                    LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                        items(searchResults) { food ->
+                            ListItem(
+                                headlineContent = { Text(food.name) },
+                                supportingContent = { Text("${food.caloriesPer100g} kcal / 100g") },
+                                modifier = Modifier.clickable { selectedFood = food }
+                            )
+                        }
+                    }
+                } else {
+                    Text("Logging: ${selectedFood?.name}", fontWeight = FontWeight.Bold)
+                    Text("Calories: ${selectedFood?.caloriesPer100g} kcal per 100g")
+                    
+                    OutlinedTextField(
+                        value = amountGrams,
+                        onValueChange = { if (it.all { c -> c.isDigit() }) amountGrams = it },
+                        label = { Text("Amount (grams)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
                     )
+                    
+                    TextButton(onClick = { selectedFood = null }) {
+                        Text("Back to Search")
+                    }
                 }
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { if (it.all { char -> char.isDigit() }) amount = it },
-                    label = { Text("Calories (kcal)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = {
-                    amount.toIntOrNull()?.let { onConfirm(it, type) }
-                    onDismiss()
-                },
-                enabled = amount.isNotEmpty()
-            ) {
-                Text("Log")
+            if (selectedFood != null) {
+                TextButton(
+                    onClick = {
+                        selectedFood?.let { onLog(it, amountGrams.toIntOrNull() ?: 100) }
+                        onDismiss()
+                    }
+                ) {
+                    Text("Log")
+                }
             }
         },
         dismissButton = {
