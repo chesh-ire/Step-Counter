@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.stepcounter.ui.MainViewModel
+import com.example.stepcounter.ui.components.BottomNavigationBar
 import com.example.stepcounter.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -32,6 +34,7 @@ import java.util.*
 @Composable
 fun DashboardScreen(
     viewModel: MainViewModel,
+    onNavigateToRunning: () -> Unit,
     onNavigateToWater: () -> Unit,
     onNavigateToAnalytics: () -> Unit,
     onSetGoals: () -> Unit,
@@ -62,7 +65,7 @@ fun DashboardScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {}) {
-                        Icon(Icons.Rounded.ChevronLeft, contentDescription = null, tint = TextWhite)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null, tint = TextWhite)
                     }
                 },
                 actions = {
@@ -77,8 +80,9 @@ fun DashboardScreen(
             BottomNavigationBar(
                 currentRoute = "home",
                 onHome = {},
-                onStats = onNavigateToAnalytics,
+                onRunning = onNavigateToRunning,
                 onWater = onNavigateToWater,
+                onStats = onNavigateToAnalytics,
                 onGoals = onSetGoals,
                 onProfile = onNavigateToProfile
             )
@@ -224,83 +228,5 @@ fun CalorieIntakeCard(consumed: Int, net: Int, onClick: () -> Unit) {
                 Icon(Icons.Rounded.Restaurant, contentDescription = null, tint = CalorieOrange)
             }
         }
-    }
-}
-
-@Composable
-fun BottomNavigationBar(
-    currentRoute: String,
-    onHome: () -> Unit,
-    onStats: () -> Unit,
-    onWater: () -> Unit,
-    onGoals: () -> Unit,
-    onProfile: () -> Unit
-) {
-    NavigationBar(
-        containerColor = DeepNavy,
-        contentColor = TextWhite,
-        tonalElevation = 0.dp
-    ) {
-        NavigationBarItem(
-            selected = currentRoute == "home",
-            onClick = onHome,
-            icon = { Icon(Icons.Rounded.Home, contentDescription = null) },
-            label = { Text("Home", fontSize = 10.sp) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = AccentCyan,
-                selectedTextColor = AccentCyan,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            selected = currentRoute == "stats",
-            onClick = onStats,
-            icon = { Icon(Icons.Rounded.BarChart, contentDescription = null) },
-            label = { Text("Stats", fontSize = 10.sp) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = AccentCyan,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            selected = currentRoute == "water",
-            onClick = onWater,
-            icon = { Icon(Icons.Rounded.WaterDrop, contentDescription = null) },
-            label = { Text("Water", fontSize = 10.sp) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = AccentCyan,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            selected = currentRoute == "goals",
-            onClick = onGoals,
-            icon = { Icon(Icons.Rounded.EmojiEvents, contentDescription = null) },
-            label = { Text("Goals", fontSize = 10.sp) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = AccentCyan,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        NavigationBarItem(
-            selected = currentRoute == "profile",
-            onClick = onProfile,
-            icon = { Icon(Icons.Rounded.Person, contentDescription = null) },
-            label = { Text("Profile", fontSize = 10.sp) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = AccentCyan,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
     }
 }

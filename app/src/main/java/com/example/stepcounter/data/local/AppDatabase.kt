@@ -9,8 +9,17 @@ import com.example.stepcounter.data.local.dao.*
 import com.example.stepcounter.data.local.entities.*
 
 @Database(
-    entities = [StepEntry::class, HourlyStep::class, WaterEntry::class, CalorieEntry::class, WeightEntry::class, FoodItem::class, FoodConsumption::class],
-    version = 3,
+    entities = [
+        StepEntry::class, 
+        HourlyStep::class, 
+        WaterEntry::class, 
+        CalorieEntry::class, 
+        WeightEntry::class, 
+        FoodItem::class, 
+        FoodConsumption::class,
+        Workout::class
+    ],
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -20,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun calorieDao(): CalorieDao
     abstract fun weightDao(): WeightDao
     abstract fun foodDao(): FoodDao
+    abstract fun workoutDao(): WorkoutDao
 
     companion object {
         @Volatile

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,14 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.stepcounter.ui.MainViewModel
-import com.example.stepcounter.ui.dashboard.BottomNavigationBar
+import com.example.stepcounter.ui.components.BottomNavigationBar
 import com.example.stepcounter.ui.theme.*
 import java.util.*
 
@@ -32,6 +31,7 @@ fun WaterTrackerScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToRunning: () -> Unit,
     onNavigateToStats: () -> Unit,
     onNavigateToGoals: () -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -69,8 +69,9 @@ fun WaterTrackerScreen(
             BottomNavigationBar(
                 currentRoute = "water",
                 onHome = onNavigateToHome,
-                onStats = onNavigateToStats,
+                onRunning = onNavigateToRunning,
                 onWater = {},
+                onStats = onNavigateToStats,
                 onGoals = onNavigateToGoals,
                 onProfile = onNavigateToProfile
             )
@@ -87,7 +88,7 @@ fun WaterTrackerScreen(
             
             Spacer(modifier = Modifier.height(40.dp))
             
-            // Bottle Graphic Placeholder
+            // Bottle Graphic
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -138,7 +139,7 @@ fun WaterTrackerScreen(
                 )
                 InfoTile(
                     modifier = Modifier.weight(1f),
-                    icon = Icons.Rounded.ShowChart,
+                    icon = Icons.AutoMirrored.Rounded.ShowChart,
                     text = "${(progress * 100).toInt()}% of Goal",
                     color = AccentBlue
                 )

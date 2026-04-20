@@ -1,20 +1,15 @@
 package com.example.stepcounter.ui.analytics
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -23,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.stepcounter.ui.MainViewModel
-import com.example.stepcounter.ui.dashboard.BottomNavigationBar
+import com.example.stepcounter.ui.components.BottomNavigationBar
 import com.example.stepcounter.ui.theme.*
 import java.util.*
 
@@ -33,6 +28,7 @@ fun AnalyticsScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToRunning: () -> Unit,
     onNavigateToWater: () -> Unit,
     onNavigateToGoals: () -> Unit,
     onNavigateToProfile: () -> Unit
@@ -59,8 +55,9 @@ fun AnalyticsScreen(
             BottomNavigationBar(
                 currentRoute = "stats",
                 onHome = onNavigateToHome,
-                onStats = {},
+                onRunning = onNavigateToRunning,
                 onWater = onNavigateToWater,
+                onStats = {},
                 onGoals = onNavigateToGoals,
                 onProfile = onNavigateToProfile
             )
@@ -260,7 +257,7 @@ fun AnalyticsLineChart(
         drawPath(
             path = path,
             color = color,
-            style = Stroke(width = 3.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
         )
 
         // Points

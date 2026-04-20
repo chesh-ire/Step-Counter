@@ -11,8 +11,7 @@ data class StepEntry(
 
 @Entity(tableName = "hourly_steps")
 data class HourlyStep(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val hourTimestamp: Long, // Start of the hour
+    @PrimaryKey val hourTimestamp: Long, // Start of the hour
     val steps: Int
 )
 
@@ -44,8 +43,7 @@ data class WeightEntry(
 
 @Entity(tableName = "food_items")
 data class FoodItem(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val name: String,
+    @PrimaryKey val name: String,
     val caloriesPer100g: Int
 )
 
@@ -56,4 +54,15 @@ data class FoodConsumption(
     val calories: Int,
     val amountGrams: Int,
     val timestamp: Long
+)
+
+@Entity(tableName = "workouts")
+data class Workout(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val type: String, // e.g., "Running"
+    val startTime: Long,
+    val durationSeconds: Long,
+    val distanceKm: Double,
+    val steps: Int,
+    val calories: Int
 )

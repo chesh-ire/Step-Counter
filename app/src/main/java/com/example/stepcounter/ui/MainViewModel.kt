@@ -7,6 +7,8 @@ import com.example.stepcounter.data.local.entities.*
 import com.example.stepcounter.data.preferences.GoalPreferences
 import com.example.stepcounter.data.preferences.UserGoals
 import com.example.stepcounter.data.repository.HealthRepository
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -23,7 +25,7 @@ class MainViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val todayDistanceKm = todaySteps
-        .map { steps -> (steps * 0.000762) } // Average step length 0.762 meters
+        .map { steps -> (steps * 0.000762) } 
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val todayWater = repository.getWaterForToday()
@@ -49,10 +51,76 @@ class MainViewModel(
     val todayFoodConsumption = repository.getFoodConsumptionToday()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Running / Workout State
+    private val _isRunning = MutableStateFlow(false)
+    val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
+
+    private val _runDurationSeconds = MutableStateFlow(0L)
+    val runDurationSeconds: StateFlow<Long> = _runDurationSeconds.asStateFlow()
+
+    private val _runDistanceKm = MutableStateFlow(0.0)
+    val runDistanceKm: StateFlow<Double> = _runDistanceKm.asStateFlow()
+
+    private val _runSteps = MutableStateFlow(0)
+    val runSteps: StateFlow<Int> = _runSteps.asStateFlow()
+
+    private val _lastWorkoutSummary = MutableStateFlow<Workout?>(null)
+    val lastWorkoutSummary: StateFlow<Workout?> = _lastWorkoutSummary.asStateFlow()
+
+    private var runTimerJob: Job? = null
+    private var runBaselineSteps = -1
+
     init {
         viewModelScope.launch {
             repository.preseedFoodDatabase()
         }
+    }
+
+    fun startRun() {
+        if (_isRunning.value) return
+        _isRunning.value = true
+        _runDurationSeconds.value = 0
+        _runDistanceKm.value = 0.0
+        _runSteps.value = 0
+        _lastWorkoutSummary.value = null
+        runBaselineSteps = todaySteps.value
+        
+        runTimerJob = viewModelScope.launch {
+            while (true) {
+                delay(1000)
+                _runDurationSeconds.value += 1
+                
+                val currentSteps = todaySteps.value
+                val stepsDuringRun = (currentSteps - runBaselineSteps).coerceAtLeast(0)
+                _runSteps.value = stepsDuringRun
+                _runDistanceKm.value = stepsDuringRun * 0.000762
+            }
+        }
+    }
+
+    fun stopRun() {
+        if (!_isRunning.value) return
+        _isRunning.value = false
+        runTimerJob?.cancel()
+        
+        val workout = Workout(
+            type = "Running",
+            startTime = System.currentTimeMillis() - (_runDurationSeconds.value * 1000),
+            durationSeconds = _runDurationSeconds.value,
+            distanceKm = _runDistanceKm.value,
+            steps = _runSteps.value,
+            calories = (_runSteps.value * 0.05).toInt()
+        )
+        
+        _lastWorkoutSummary.value = workout
+        
+        viewModelScope.launch {
+            repository.saveWorkout(workout)
+        }
+    }
+
+    fun dismissWorkoutSummary() {
+        _lastWorkoutSummary.value = null
     }
 
     fun searchFood(query: String) {

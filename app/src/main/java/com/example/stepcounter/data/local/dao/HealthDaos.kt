@@ -12,7 +12,7 @@ interface StepDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateStep(stepEntry: StepEntry)
 
-    @Query("SELECT * FROM step_entries ORDER BY date DESC")
+    @Query("SELECT * FROM step_entries ORDER BY date ASC")
     fun getAllSteps(): Flow<List<StepEntry>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -45,7 +45,7 @@ interface CalorieDao {
 
 @Dao
 interface WeightDao {
-    @Query("SELECT * FROM weight_entries ORDER BY timestamp DESC")
+    @Query("SELECT * FROM weight_entries ORDER BY timestamp ASC")
     fun getAllWeightEntries(): Flow<List<WeightEntry>>
 
     @Insert
@@ -68,4 +68,13 @@ interface FoodDao {
 
     @Query("SELECT * FROM food_consumption WHERE timestamp >= :startOfDay AND timestamp <= :endOfDay")
     fun getFoodConsumptionForDay(startOfDay: Long, endOfDay: Long): Flow<List<FoodConsumption>>
+}
+
+@Dao
+interface WorkoutDao {
+    @Insert
+    suspend fun insertWorkout(workout: Workout)
+
+    @Query("SELECT * FROM workouts ORDER BY startTime DESC")
+    fun getAllWorkouts(): Flow<List<Workout>>
 }

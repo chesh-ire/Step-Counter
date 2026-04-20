@@ -10,7 +10,8 @@ class HealthRepository(
     private val waterDao: WaterDao,
     private val calorieDao: CalorieDao,
     private val weightDao: WeightDao,
-    private val foodDao: FoodDao
+    private val foodDao: FoodDao,
+    private val workoutDao: WorkoutDao
 ) {
     private fun getStartOfDay(): Long {
         val calendar = Calendar.getInstance()
@@ -90,7 +91,6 @@ class HealthRepository(
             timestamp = System.currentTimeMillis()
         )
         foodDao.insertFoodConsumption(consumption)
-        // Also add to daily calories consumed
         addCalorie(totalCalories, CalorieType.CONSUMED)
     }
 
@@ -112,4 +112,11 @@ class HealthRepository(
         )
         items.forEach { foodDao.insertFoodItem(it) }
     }
+
+    // Workouts
+    suspend fun saveWorkout(workout: Workout) {
+        workoutDao.insertWorkout(workout)
+    }
+
+    fun getAllWorkouts(): Flow<List<Workout>> = workoutDao.getAllWorkouts()
 }

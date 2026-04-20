@@ -20,6 +20,8 @@ import com.example.stepcounter.ui.dashboard.DashboardScreen
 import com.example.stepcounter.ui.logging.FoodLoggingDialog
 import com.example.stepcounter.ui.logging.WaterLoggingDialog
 import com.example.stepcounter.ui.logging.WeightLoggingDialog
+import com.example.stepcounter.ui.running.RunningScreen
+import com.example.stepcounter.ui.running.WorkoutSummaryDialog
 import com.example.stepcounter.ui.settings.GoalsScreen
 import com.example.stepcounter.ui.theme.StepCounterTheme
 import com.example.stepcounter.ui.water.WaterTrackerScreen
@@ -63,6 +65,7 @@ class MainActivity : ComponentActivity() {
 
         val userGoals by viewModel.userGoals.collectAsStateWithLifecycle()
         val foodSearchResults by viewModel.foodSearchResults.collectAsStateWithLifecycle()
+        val lastWorkout by viewModel.lastWorkoutSummary.collectAsStateWithLifecycle()
 
         val activityRecognitionPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             rememberPermissionState(Manifest.permission.ACTIVITY_RECOGNITION)
@@ -90,6 +93,7 @@ class MainActivity : ComponentActivity() {
             composable("home") {
                 DashboardScreen(
                     viewModel = viewModel,
+                    onNavigateToRunning = { navController.navigate("running") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToAnalytics = { navController.navigate("stats") },
                     onSetGoals = { navController.navigate("goals") },
@@ -97,11 +101,22 @@ class MainActivity : ComponentActivity() {
                     onLogFood = { showFoodDialog = true }
                 )
             }
+            composable("running") {
+                RunningScreen(
+                    viewModel = viewModel,
+                    onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+                    onNavigateToStats = { navController.navigate("stats") },
+                    onNavigateToWater = { navController.navigate("water") },
+                    onNavigateToGoals = { navController.navigate("goals") },
+                    onNavigateToProfile = { /* TODO */ }
+                )
+            }
             composable("stats") {
                 AnalyticsScreen(
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() },
                     onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+                    onNavigateToRunning = { navController.navigate("running") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToGoals = { navController.navigate("goals") },
                     onNavigateToProfile = { /* TODO */ }
@@ -112,6 +127,7 @@ class MainActivity : ComponentActivity() {
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() },
                     onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+                    onNavigateToRunning = { navController.navigate("running") },
                     onNavigateToStats = { navController.navigate("stats") },
                     onNavigateToGoals = { navController.navigate("goals") },
                     onNavigateToProfile = { /* TODO */ },
@@ -152,6 +168,13 @@ class MainActivity : ComponentActivity() {
             WeightLoggingDialog(
                 onDismiss = { showWeightDialog = false },
                 onConfirm = { viewModel.addWeight(it) }
+            )
+        }
+
+        lastWorkout?.let { workout ->
+            WorkoutSummaryDialog(
+                workout = workout,
+                onDismiss = { viewModel.dismissWorkoutSummary() }
             )
         }
     }
