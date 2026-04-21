@@ -11,6 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class MainViewModel(
     private val repository: HealthRepository,
@@ -18,7 +19,7 @@ class MainViewModel(
 ) : ViewModel() {
 
     val userGoals = goalPreferences.userGoalsFlow
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserGoals(10000, 2000, 70.0))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), UserGoals(10000, 2000, 70.0, 8.0, 500))
 
     val todaySteps = repository.getStepsForToday()
         .map { it?.steps ?: 0 }
@@ -43,6 +44,23 @@ class MainViewModel(
     val latestWeight = repository.getLatestWeight()
         .map { it?.weightKg ?: 0.0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val todayActiveMinutes = combine(
+        repository.getAllWorkouts(),
+        todaySteps
+    ) { workouts, steps ->
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+        val startOfDay = calendar.timeInMillis
+        
+        val workoutMinutes = workouts.filter { it.startTime >= startOfDay }.sumOf { it.durationSeconds } / 60
+        val walkingMinutes = (steps / 100).toLong() // 100 steps ~ 1 minute of activity
+        
+        workoutMinutes + walkingMinutes
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
 
     // Food Logging
     private val _foodSearchResults = MutableStateFlow<List<FoodItem>>(emptyList())
@@ -200,6 +218,18 @@ class MainViewModel(
 
     fun updateWeightGoal(goalKg: Double) {
         viewModelScope.launch { goalPreferences.updateWeightGoal(goalKg) }
+    }
+
+    fun updateDistanceGoal(goalKm: Double) {
+        viewModelScope.launch { goalPreferences.updateDistanceGoal(goalKm) }
+    }
+
+    fun updateCalorieGoal(goal: Int) {
+        viewModelScope.launch { goalPreferences.updateCalorieGoal(goal) }
+    }
+
+    fun toggleDarkMode(isDark: Boolean) {
+        viewModelScope.launch { goalPreferences.toggleDarkMode(isDark) }
     }
 
     class Factory(

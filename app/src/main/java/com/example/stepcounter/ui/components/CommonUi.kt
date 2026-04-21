@@ -51,6 +51,7 @@ fun BottomNavigationBar(
                 unselectedTextColor = TextGray
             )
         )
+        /*
         NavigationBarItem(
             selected = currentRoute == "water",
             onClick = onWater,
@@ -64,6 +65,7 @@ fun BottomNavigationBar(
                 unselectedTextColor = TextGray
             )
         )
+        */
         NavigationBarItem(
             selected = currentRoute == "stats",
             onClick = onStats,
@@ -90,6 +92,7 @@ fun BottomNavigationBar(
                 unselectedTextColor = TextGray
             )
         )
+        /*
         NavigationBarItem(
             selected = currentRoute == "profile",
             onClick = onProfile,
@@ -103,5 +106,6 @@ fun BottomNavigationBar(
                 unselectedTextColor = TextGray
             )
         )
+        */
     }
 }

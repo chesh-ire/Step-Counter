@@ -23,6 +23,7 @@ import com.example.stepcounter.ui.logging.WeightLoggingDialog
 import com.example.stepcounter.ui.running.RunningScreen
 import com.example.stepcounter.ui.running.WorkoutSummaryDialog
 import com.example.stepcounter.ui.settings.GoalsScreen
+import com.example.stepcounter.ui.settings.SettingsScreen
 import com.example.stepcounter.ui.theme.StepCounterTheme
 import com.example.stepcounter.ui.water.WaterTrackerScreen
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -38,8 +39,10 @@ class MainActivity : ComponentActivity() {
             val viewModel: MainViewModel = viewModel(
                 factory = MainViewModel.Factory(app.repository, app.goalPreferences)
             )
+            
+            val userGoals by viewModel.userGoals.collectAsStateWithLifecycle()
 
-            StepCounterTheme {
+            StepCounterTheme(darkTheme = userGoals.isDarkMode) {
                 MainNavigation(viewModel)
             }
         }
@@ -96,7 +99,7 @@ class MainActivity : ComponentActivity() {
                     onNavigateToRunning = { navController.navigate("running") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToAnalytics = { navController.navigate("stats") },
-                    onSetGoals = { navController.navigate("goals") },
+                    onSetGoals = { navController.navigate("settings") },
                     onNavigateToProfile = { /* TODO */ },
                     onLogFood = { showFoodDialog = true }
                 )
@@ -119,7 +122,8 @@ class MainActivity : ComponentActivity() {
                     onNavigateToRunning = { navController.navigate("running") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToGoals = { navController.navigate("goals") },
-                    onNavigateToProfile = { /* TODO */ }
+                    onNavigateToProfile = { /* TODO */ },
+                    onLogWeight = { showWeightDialog = true }
                 )
             }
             composable("water") {
@@ -142,8 +146,17 @@ class MainActivity : ComponentActivity() {
                         viewModel.updateStepGoal(goals.stepGoal)
                         viewModel.updateWaterGoal(goals.waterGoalMl)
                         viewModel.updateWeightGoal(goals.weightGoalKg)
+                        viewModel.updateDistanceGoal(goals.distanceGoalKm)
+                        viewModel.updateCalorieGoal(goals.calorieGoal)
                         navController.popBackStack()
                     }
+                )
+            }
+            composable("settings") {
+                SettingsScreen(
+                    isDarkMode = userGoals.isDarkMode,
+                    onToggleDarkMode = { viewModel.toggleDarkMode(it) },
+                    onBack = { navController.popBackStack() }
                 )
             }
         }

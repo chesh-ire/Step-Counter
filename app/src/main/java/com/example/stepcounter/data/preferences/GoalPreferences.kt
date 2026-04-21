@@ -12,7 +12,10 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 data class UserGoals(
     val stepGoal: Int,
     val waterGoalMl: Int,
-    val weightGoalKg: Double
+    val weightGoalKg: Double,
+    val distanceGoalKm: Double = 8.0,
+    val calorieGoal: Int = 500,
+    val isDarkMode: Boolean = true
 )
 
 class GoalPreferences(private val context: Context) {
@@ -21,6 +24,9 @@ class GoalPreferences(private val context: Context) {
         val STEP_GOAL = intPreferencesKey("step_goal")
         val WATER_GOAL = intPreferencesKey("water_goal")
         val WEIGHT_GOAL = doublePreferencesKey("weight_goal")
+        val DISTANCE_GOAL = doublePreferencesKey("distance_goal")
+        val CALORIE_GOAL = intPreferencesKey("calorie_goal")
+        val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
         val LAST_ACTIVITY_TIMESTAMP = longPreferencesKey("last_activity_timestamp")
     }
 
@@ -28,7 +34,10 @@ class GoalPreferences(private val context: Context) {
         UserGoals(
             stepGoal = preferences[STEP_GOAL] ?: 10000,
             waterGoalMl = preferences[WATER_GOAL] ?: 2000,
-            weightGoalKg = preferences[WEIGHT_GOAL] ?: 70.0
+            weightGoalKg = preferences[WEIGHT_GOAL] ?: 70.0,
+            distanceGoalKm = preferences[DISTANCE_GOAL] ?: 8.0,
+            calorieGoal = preferences[CALORIE_GOAL] ?: 500,
+            isDarkMode = preferences[IS_DARK_MODE] ?: true
         )
     }
 
@@ -57,6 +66,24 @@ class GoalPreferences(private val context: Context) {
     suspend fun updateWeightGoal(goalKg: Double) {
         context.dataStore.edit { preferences ->
             preferences[WEIGHT_GOAL] = goalKg
+        }
+    }
+
+    suspend fun updateDistanceGoal(goalKm: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[DISTANCE_GOAL] = goalKm
+        }
+    }
+
+    suspend fun updateCalorieGoal(goal: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[CALORIE_GOAL] = goal
+        }
+    }
+
+    suspend fun toggleDarkMode(isDark: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[IS_DARK_MODE] = isDark
         }
     }
 }

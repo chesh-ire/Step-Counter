@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowLeft
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,6 +43,7 @@ fun DashboardScreen(
     val distanceKm by viewModel.todayDistanceKm.collectAsStateWithLifecycle()
     val caloriesConsumed by viewModel.todayCaloriesConsumed.collectAsStateWithLifecycle()
     val caloriesBurned by viewModel.todayCaloriesBurned.collectAsStateWithLifecycle()
+    val activeMinutes by viewModel.todayActiveMinutes.collectAsStateWithLifecycle()
     val userGoals by viewModel.userGoals.collectAsStateWithLifecycle()
 
     val netCalories = (caloriesConsumed - caloriesBurned)
@@ -61,16 +60,6 @@ fun DashboardScreen(
                             color = TextGray,
                             fontSize = 12.sp
                         )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null, tint = TextWhite)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onSetGoals) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = TextWhite)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -112,13 +101,14 @@ fun DashboardScreen(
                 ) {
                     MiniStatItem(String.format(Locale.getDefault(), "%.1f", distanceKm), "km", "Distance")
                     MiniStatItem(caloriesBurned.toString(), "kcal", "Burned")
-                    MiniStatItem("45", "min", "Active Time")
+                    MiniStatItem(activeMinutes.toString(), "min", "Active Time")
                 }
             }
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
 
-            // Calorie Intake Card
+            // Calorie Intake Card - Commented out for now
+            /*
             item {
                 CalorieIntakeCard(
                     consumed = caloriesConsumed,
@@ -126,6 +116,7 @@ fun DashboardScreen(
                     onClick = onLogFood
                 )
             }
+            */
 
             item { Spacer(modifier = Modifier.height(20.dp)) }
         }

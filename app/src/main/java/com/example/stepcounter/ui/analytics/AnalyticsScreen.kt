@@ -1,11 +1,13 @@
 package com.example.stepcounter.ui.analytics
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -21,6 +24,7 @@ import com.example.stepcounter.ui.MainViewModel
 import com.example.stepcounter.ui.components.BottomNavigationBar
 import com.example.stepcounter.ui.theme.*
 import java.util.*
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +35,8 @@ fun AnalyticsScreen(
     onNavigateToRunning: () -> Unit,
     onNavigateToWater: () -> Unit,
     onNavigateToGoals: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onLogWeight: () -> Unit
 ) {
     val weightHistory by viewModel.weightHistory.collectAsStateWithLifecycle()
     val stepHistory by viewModel.stepHistory.collectAsStateWithLifecycle()
@@ -42,10 +47,15 @@ fun AnalyticsScreen(
         containerColor = DeepNavy,
         topBar = {
             TopAppBar(
-                title = { Text("Weight Progress", color = TextWhite, fontWeight = FontWeight.Bold) },
+                title = { Text("Health Analytics", color = TextWhite, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = TextWhite)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogWeight) {
+                        Icon(Icons.Rounded.Add, contentDescription = "Log Weight", tint = AccentCyan)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -93,17 +103,23 @@ fun AnalyticsScreen(
                             )
                         }
                     }
-                    Text(
-                        text = "Goal: ${userGoals.weightGoalKg} kg",
-                        color = AccentCyan,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 10.dp)
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "Goal: ${userGoals.weightGoalKg} kg",
+                            color = AccentCyan,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(onClick = onLogWeight, contentPadding = PaddingValues(0.dp)) {
+                            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = AccentCyan)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Update", color = AccentCyan, fontSize = 12.sp)
+                        }
+                    }
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
             // Weight Chart Card
             item {
@@ -114,8 +130,7 @@ fun AnalyticsScreen(
 
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Weight Trend", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("Today", color = TextGray, fontSize = 14.sp)
+                    Text("Activity History", color = TextWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             }
 
@@ -126,7 +141,7 @@ fun AnalyticsScreen(
                 StepHistoryChart(stepHistory.map { it.steps.toFloat() }, userGoals.stepGoal.toFloat())
             }
             
-            item { Spacer(modifier = Modifier.height(20.dp)) }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
@@ -139,29 +154,24 @@ fun WeightChartCard(data: List<Float>, goal: Float) {
         colors = CardDefaults.cardColors(containerColor = CardNavy)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
+            Text("Weight Trend", color = TextWhite, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp),
+                    .height(200.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (data.size < 2) {
-                    Text("Not enough data to show weight trend", color = TextGray, fontSize = 12.sp)
+                    Text("Add more weight entries to see trend", color = TextGray, fontSize = 12.sp)
                 } else {
                     AnalyticsLineChart(
                         data = data,
                         goalValue = goal,
-                        color = AccentCyan
+                        color = AccentCyan,
+                        unit = "kg"
                     )
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Today", color = TextGray, fontSize = 12.sp)
-                Text("Week", color = TextGray, fontSize = 12.sp)
-                Text("Month", color = TextGray, fontSize = 12.sp)
             }
         }
     }
@@ -175,19 +185,20 @@ fun StepHistoryChart(data: List<Float>, goal: Float) {
         colors = CardDefaults.cardColors(containerColor = CardNavy)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text("Step Progress", color = TextWhite, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
+            Text("Daily Steps", color = TextWhite, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
             Box(
-                modifier = Modifier.fillMaxWidth().height(120.dp),
+                modifier = Modifier.fillMaxWidth().height(200.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (data.size < 2) {
-                    Text("Recording your first steps...", color = TextGray, fontSize = 12.sp)
+                    Text("Counting your journey...", color = TextGray, fontSize = 12.sp)
                 } else {
                     AnalyticsLineChart(
                         data = data,
                         goalValue = goal,
-                        color = AccentBlue
+                        color = AccentBlue,
+                        unit = "steps"
                     )
                 }
             }
@@ -199,79 +210,137 @@ fun StepHistoryChart(data: List<Float>, goal: Float) {
 fun AnalyticsLineChart(
     data: List<Float>,
     goalValue: Float? = null,
-    color: Color
+    color: Color,
+    unit: String = ""
 ) {
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val width = size.width
-        val height = size.height
-        
-        val maxDataVal = data.maxOrNull() ?: 1f
-        val minDataVal = data.minOrNull() ?: 0f
-        
-        val maxVal = if (goalValue != null) maxOf(maxDataVal, goalValue) else maxDataVal
-        val minVal = if (goalValue != null) minOf(minDataVal, goalValue) else minDataVal
-        val range = (maxVal - minVal).coerceAtLeast(1f)
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
-        val points = data.mapIndexed { index, value ->
-            Offset(
-                x = index * (width / (data.size - 1)),
-                y = height - ((value - minVal) / range) * height
-            )
-        }
-
-        // Area under path
-        val fillPath = Path().apply {
-            moveTo(points[0].x, height)
-            points.forEach { lineTo(it.x, it.y) }
-            lineTo(points.last().x, height)
-            close()
-        }
-        
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                listOf(color.copy(alpha = 0.3f), Color.Transparent)
-            )
-        )
-
-        // Goal Line
-        if (goalValue != null) {
-            val goalY = height - ((goalValue - minVal) / range) * height
-            drawLine(
-                color = TextGray.copy(alpha = 0.3f),
-                start = Offset(0f, goalY),
-                end = Offset(width, goalY),
-                strokeWidth = 1.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
-            )
-        }
-
-        // Main Path
-        val path = Path().apply {
-            moveTo(points[0].x, points[0].y)
-            for (i in 1 until points.size) {
-                lineTo(points[i].x, points[i].y)
+    Column {
+        // Selection display
+        Row(
+            modifier = Modifier.fillMaxWidth().height(30.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (selectedIndex != null && selectedIndex!! < data.size) {
+                val value = data[selectedIndex!!]
+                val text = if (unit == "kg") {
+                    String.format(Locale.getDefault(), "%.1f kg", value)
+                } else {
+                    String.format(Locale.getDefault(), "%,d steps", value.toInt())
+                }
+                Text(text = text, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            } else {
+                Text(text = "Tap nodes to see details", color = TextGray, fontSize = 12.sp)
             }
         }
 
-        drawPath(
-            path = path,
-            color = color,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Canvas(modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(data) {
+                    detectTapGestures { offset ->
+                        if (data.isNotEmpty()) {
+                            val width = size.width
+                            val stepX = if (data.size > 1) width / (data.size - 1) else width
+                            val index = if (data.size > 1) {
+                                (offset.x / stepX).roundToInt().coerceIn(0, data.size - 1)
+                            } else 0
+                            selectedIndex = if (selectedIndex == index) null else index
+                        }
+                    }
+                }
+            ) {
+                val width = size.width
+                val height = size.height
+                
+                val maxDataVal = data.maxOrNull() ?: 1f
+                val minDataVal = data.minOrNull() ?: 0f
+                
+                val maxVal = if (goalValue != null) maxOf(maxDataVal, goalValue) else maxDataVal
+                val minVal = if (goalValue != null) minOf(minDataVal, goalValue) else minDataVal
+                val range = (maxVal - minVal).coerceAtLeast(1f)
 
-        // Points
-        points.forEach { point ->
-            drawCircle(
-                color = color,
-                radius = 4.dp.toPx(),
-                center = point
-            )
-            drawCircle(
-                color = DeepNavy,
-                radius = 2.dp.toPx(),
-                center = point
-            )
+                val points = data.mapIndexed { index, value ->
+                    Offset(
+                        x = if (data.size > 1) index * (width / (data.size - 1)) else width / 2,
+                        y = height - ((value - minVal) / range) * height
+                    )
+                }
+
+                // Area under path
+                if (points.size > 1) {
+                    val fillPath = Path().apply {
+                        moveTo(points[0].x, height)
+                        points.forEach { lineTo(it.x, it.y) }
+                        lineTo(points.last().x, height)
+                        close()
+                    }
+                    
+                    drawPath(
+                        path = fillPath,
+                        brush = Brush.verticalGradient(
+                            listOf(color.copy(alpha = 0.3f), Color.Transparent)
+                        )
+                    )
+                }
+
+                // Goal Line
+                if (goalValue != null) {
+                    val goalY = height - ((goalValue - minVal) / range) * height
+                    drawLine(
+                        color = TextGray.copy(alpha = 0.3f),
+                        start = Offset(0f, goalY),
+                        end = Offset(width, goalY),
+                        strokeWidth = 1.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                    )
+                }
+
+                // Main Path
+                if (points.size > 1) {
+                    val path = Path().apply {
+                        moveTo(points[0].x, points[0].y)
+                        for (i in 1 until points.size) {
+                            lineTo(points[i].x, points[i].y)
+                        }
+                    }
+
+                    drawPath(
+                        path = path,
+                        color = color,
+                        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+                    )
+                }
+
+                // Selection Helper Line
+                selectedIndex?.let { index ->
+                    if (index < points.size) {
+                        val point = points[index]
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.3f),
+                            start = Offset(point.x, 0f),
+                            end = Offset(point.x, height),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
+                }
+
+                // Points
+                points.forEachIndexed { index, point ->
+                    val isSelected = selectedIndex == index
+                    drawCircle(
+                        color = if (isSelected) Color.White else color,
+                        radius = (if (isSelected) 6.dp else 4.dp).toPx(),
+                        center = point
+                    )
+                    drawCircle(
+                        color = DeepNavy,
+                        radius = (if (isSelected) 3.dp else 2.dp).toPx(),
+                        center = point
+                    )
+                }
+            }
         }
     }
 }
