@@ -51,21 +51,6 @@ fun BottomNavigationBar(
                 unselectedTextColor = TextGray
             )
         )
-        /*
-        NavigationBarItem(
-            selected = currentRoute == "water",
-            onClick = onWater,
-            icon = { Icon(Icons.Rounded.WaterDrop, contentDescription = null) },
-            label = { Text("Water", fontSize = 10.sp) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = AccentCyan,
-                selectedTextColor = AccentCyan,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        */
         NavigationBarItem(
             selected = currentRoute == "stats",
             onClick = onStats,
@@ -92,20 +77,5 @@ fun BottomNavigationBar(
                 unselectedTextColor = TextGray
             )
         )
-        /*
-        NavigationBarItem(
-            selected = currentRoute == "profile",
-            onClick = onProfile,
-            icon = { Icon(Icons.Rounded.Person, contentDescription = null) },
-            label = { Text("Profile", fontSize = 10.sp) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = AccentCyan,
-                selectedTextColor = AccentCyan,
-                indicatorColor = Color.Transparent,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray
-            )
-        )
-        */
     }
 }

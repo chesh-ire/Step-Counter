@@ -1,6 +1,8 @@
 package com.example.stepcounter.ui.analytics
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -25,6 +28,12 @@ import com.example.stepcounter.ui.components.BottomNavigationBar
 import com.example.stepcounter.ui.theme.*
 import java.util.*
 import kotlin.math.roundToInt
+
+enum class TimeRange(val label: String, val days: Int) {
+    WEEK("Week", 7),
+    MONTH("Month", 30),
+    YEAR("Year", 365)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +51,17 @@ fun AnalyticsScreen(
     val stepHistory by viewModel.stepHistory.collectAsStateWithLifecycle()
     val userGoals by viewModel.userGoals.collectAsStateWithLifecycle()
     val latestWeight by viewModel.latestWeight.collectAsStateWithLifecycle()
+
+    var selectedRange by remember { mutableStateOf(TimeRange.WEEK) }
+    val cutoff = remember(selectedRange) {
+        System.currentTimeMillis() - selectedRange.days * 24L * 60 * 60 * 1000
+    }
+    val filteredWeight = remember(weightHistory, cutoff) {
+        weightHistory.filter { it.timestamp >= cutoff }
+    }
+    val filteredSteps = remember(stepHistory, cutoff) {
+        stepHistory.filter { it.date >= cutoff }
+    }
 
     Scaffold(
         containerColor = DeepNavy,
@@ -121,9 +141,19 @@ fun AnalyticsScreen(
 
             item { Spacer(modifier = Modifier.height(16.dp)) }
 
+            // Time range filter (applies to both charts)
+            item {
+                TimeRangeSelector(
+                    selected = selectedRange,
+                    onSelected = { selectedRange = it }
+                )
+            }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+
             // Weight Chart Card
             item {
-                WeightChartCard(weightHistory.map { it.weightKg.toFloat() }, userGoals.weightGoalKg.toFloat())
+                WeightChartCard(filteredWeight.map { it.weightKg.toFloat() }, userGoals.weightGoalKg.toFloat())
             }
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
@@ -138,10 +168,45 @@ fun AnalyticsScreen(
 
             // Step Progress Chart
             item {
-                StepHistoryChart(stepHistory.map { it.steps.toFloat() }, userGoals.stepGoal.toFloat())
+                StepHistoryChart(filteredSteps.map { it.steps.toFloat() }, userGoals.stepGoal.toFloat())
             }
             
             item { Spacer(modifier = Modifier.height(24.dp)) }
+        }
+    }
+}
+
+@Composable
+fun TimeRangeSelector(
+    selected: TimeRange,
+    onSelected: (TimeRange) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(CardNavy)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        TimeRange.values().forEach { range ->
+            val isSelected = range == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isSelected) AccentCyan else Color.Transparent)
+                    .clickable { onSelected(range) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = range.label,
+                    color = if (isSelected) DeepNavy else TextGray,
+                    fontSize = 14.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                )
+            }
         }
     }
 }

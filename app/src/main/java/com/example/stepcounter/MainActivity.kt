@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
                     onNavigateToRunning = { navController.navigate("running") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToAnalytics = { navController.navigate("stats") },
-                    onSetGoals = { navController.navigate("settings") },
+                    onSetGoals = { navController.navigate("goals") },
                     onNavigateToProfile = { /* TODO */ },
                     onLogFood = { showFoodDialog = true }
                 )
@@ -149,7 +149,12 @@ class MainActivity : ComponentActivity() {
                         viewModel.updateDistanceGoal(goals.distanceGoalKm)
                         viewModel.updateCalorieGoal(goals.calorieGoal)
                         navController.popBackStack()
-                    }
+                    },
+                    onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+                    onNavigateToRunning = { navController.navigate("running") },
+                    onNavigateToWater = { navController.navigate("water") },
+                    onNavigateToStats = { navController.navigate("stats") },
+                    onNavigateToProfile = { /* TODO */ }
                 )
             }
             composable("settings") {

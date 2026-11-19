@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.stepcounter.data.preferences.UserGoals
+import com.example.stepcounter.ui.components.BottomNavigationBar
 import com.example.stepcounter.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +28,12 @@ import com.example.stepcounter.ui.theme.*
 fun GoalsScreen(
     currentGoals: UserGoals,
     onBack: () -> Unit,
-    onSave: (UserGoals) -> Unit
+    onSave: (UserGoals) -> Unit,
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToRunning: () -> Unit = {},
+    onNavigateToWater: () -> Unit = {},
+    onNavigateToStats: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
 ) {
     var stepGoal by remember { mutableStateOf(currentGoals.stepGoal.toString()) }
     var waterGoal by remember { mutableStateOf(currentGoals.waterGoalMl.toString()) }
@@ -46,6 +52,17 @@ fun GoalsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                currentRoute = "goals",
+                onHome = onNavigateToHome,
+                onRunning = onNavigateToRunning,
+                onWater = onNavigateToWater,
+                onStats = onNavigateToStats,
+                onGoals = {},
+                onProfile = onNavigateToProfile
             )
         }
     ) { innerPadding ->
