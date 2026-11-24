@@ -1,6 +1,7 @@
 package com.example.stepcounter.service
 
 import android.app.Notification
+import android.app.PendingIntent
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,6 +13,7 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.example.stepcounter.MainActivity
 import com.example.stepcounter.R
 import com.example.stepcounter.StepCounterApp
 import com.example.stepcounter.data.local.entities.CalorieType
@@ -144,11 +146,22 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotification(): Notification {
+        val launchIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val contentIntent = PendingIntent.getActivity(
+            this,
+            0,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, StepCounterApp.CHANNEL_ID)
             .setContentTitle("Step Counter Active")
             .setContentText("Counting your steps in real-time...")
             .setSmallIcon(R.drawable.placeholder)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(contentIntent)
             .setOngoing(true)
             .build()
     }

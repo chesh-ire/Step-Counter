@@ -4,18 +4,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.stepcounter.data.local.entities.*
+import com.example.stepcounter.data.preferences.FriendIdentity
 import com.example.stepcounter.data.preferences.GoalPreferences
 import com.example.stepcounter.data.preferences.UserGoals
+import com.example.stepcounter.data.repository.AddFriendResult
+import com.example.stepcounter.data.repository.FriendProfile
+import com.example.stepcounter.data.repository.FriendsRepository
 import com.example.stepcounter.data.repository.HealthRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainViewModel(
     private val repository: HealthRepository,
-    private val goalPreferences: GoalPreferences
+    private val goalPreferences: GoalPreferences,
+    private val friendsRepository: FriendsRepository
 ) : ViewModel() {
 
     val userGoals = goalPreferences.userGoalsFlow
@@ -88,9 +95,96 @@ class MainViewModel(
     private var runTimerJob: Job? = null
     private var runBaselineSteps = -1
 
+    // ---------------- Friends / Live Leaderboard ----------------
+
+    val friendsAvailable: Boolean get() = friendsRepository.isAvailable
+
+    private val _friendIdentity = MutableStateFlow<FriendIdentity?>(null)
+    val friendIdentity: StateFlow<FriendIdentity?> = _friendIdentity.asStateFlow()
+
+    private val _addFriendResult = MutableStateFlow<AddFriendResult?>(null)
+    val addFriendResult: StateFlow<AddFriendResult?> = _addFriendResult.asStateFlow()
+
+    /** Raw leaderboard streamed from Firebase for me + my friends. */
+    private val remoteLeaderboard: StateFlow<List<FriendProfile>> = _friendIdentity
+        .flatMapLatest { identity ->
+            if (identity == null) flowOf(emptyList())
+            else friendsRepository.observeLeaderboard(identity.userId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * Leaderboard shown in the UI. My own row is patched with my local live step count
+     * so it moves instantly, without waiting for the Firebase round-trip.
+     */
+    val leaderboard: StateFlow<List<FriendProfile>> = combine(
+        remoteLeaderboard, todaySteps, userGoals, _friendIdentity
+    ) { remote, mySteps, goals, identity ->
+        if (identity == null) return@combine remote
+        val hasMe = remote.any { it.isMe }
+        val patched = remote.map { profile ->
+            if (profile.isMe) profile.copy(steps = maxOf(profile.steps, mySteps), name = identity.displayName)
+            else profile
+        }.toMutableList()
+        if (!hasMe) {
+            // Firebase hasn't echoed me back yet — show my row locally in the meantime.
+            patched.add(
+                FriendProfile(
+                    id = identity.userId,
+                    name = identity.displayName,
+                    code = identity.friendCode,
+                    steps = mySteps,
+                    goal = goals.stepGoal,
+                    lastUpdated = System.currentTimeMillis(),
+                    isMe = true
+                )
+            )
+        }
+        patched.sortedByDescending { it.steps }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         viewModelScope.launch {
             repository.preseedFoodDatabase()
+        }
+
+        // Establish identity, then keep my live steps + goal published to Firebase.
+        viewModelScope.launch {
+            _friendIdentity.value = goalPreferences.ensureFriendIdentity()
+        }
+        viewModelScope.launch {
+            combine(
+                _friendIdentity.filterNotNull(),
+                todaySteps,
+                userGoals.map { it.stepGoal }.distinctUntilChanged()
+            ) { identity, steps, goal -> Triple(identity, steps, goal) }
+                .collect { (identity, steps, goal) ->
+                    friendsRepository.publishProfile(
+                        id = identity.userId,
+                        name = identity.displayName,
+                        code = identity.friendCode,
+                        steps = steps,
+                        goal = goal
+                    )
+                }
+        }
+    }
+
+    fun addFriend(code: String) {
+        val identity = _friendIdentity.value ?: return
+        viewModelScope.launch {
+            _addFriendResult.value = friendsRepository.addFriendByCode(identity.userId, code)
+        }
+    }
+
+    fun clearAddFriendResult() {
+        _addFriendResult.value = null
+    }
+
+    fun setDisplayName(name: String) {
+        viewModelScope.launch {
+            goalPreferences.updateDisplayName(name)
+            _friendIdentity.value = goalPreferences.ensureFriendIdentity()
         }
     }
 
@@ -234,12 +328,13 @@ class MainViewModel(
 
     class Factory(
         private val repository: HealthRepository,
-        private val goalPreferences: GoalPreferences
+        private val goalPreferences: GoalPreferences,
+        private val friendsRepository: FriendsRepository
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
                 @Suppress("UNCHECKED_CAST")
-                return MainViewModel(repository, goalPreferences) as T
+                return MainViewModel(repository, goalPreferences, friendsRepository) as T
             }
             throw IllegalArgumentException("Unknown ViewModel class")
         }

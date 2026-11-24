@@ -5,7 +5,9 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "goals")
 
@@ -18,6 +20,13 @@ data class UserGoals(
     val isDarkMode: Boolean = true
 )
 
+/** Stable identity used to compete with friends on the live leaderboard. */
+data class FriendIdentity(
+    val userId: String,
+    val displayName: String,
+    val friendCode: String
+)
+
 class GoalPreferences(private val context: Context) {
 
     companion object {
@@ -28,6 +37,9 @@ class GoalPreferences(private val context: Context) {
         val CALORIE_GOAL = intPreferencesKey("calorie_goal")
         val IS_DARK_MODE = booleanPreferencesKey("is_dark_mode")
         val LAST_ACTIVITY_TIMESTAMP = longPreferencesKey("last_activity_timestamp")
+        val USER_ID = stringPreferencesKey("friend_user_id")
+        val DISPLAY_NAME = stringPreferencesKey("friend_display_name")
+        val FRIEND_CODE = stringPreferencesKey("friend_code")
     }
 
     val userGoalsFlow: Flow<UserGoals> = context.dataStore.data.map { preferences ->
@@ -43,6 +55,46 @@ class GoalPreferences(private val context: Context) {
 
     val lastActivityTimestampFlow: Flow<Long> = context.dataStore.data.map { preferences ->
         preferences[LAST_ACTIVITY_TIMESTAMP] ?: System.currentTimeMillis()
+    }
+
+    val friendIdentityFlow: Flow<FriendIdentity?> = context.dataStore.data.map { preferences ->
+        val id = preferences[USER_ID] ?: return@map null
+        FriendIdentity(
+            userId = id,
+            displayName = preferences[DISPLAY_NAME] ?: "Me",
+            friendCode = preferences[FRIEND_CODE] ?: ""
+        )
+    }
+
+    /** Returns the stable identity, generating (and persisting) one on first use. */
+    suspend fun ensureFriendIdentity(): FriendIdentity {
+        val existing = friendIdentityFlow.first()
+        if (existing != null && existing.friendCode.isNotEmpty()) return existing
+
+        val newId = UUID.randomUUID().toString()
+        val newCode = generateFriendCode()
+        context.dataStore.edit { preferences ->
+            if (preferences[USER_ID] == null) preferences[USER_ID] = newId
+            if (preferences[FRIEND_CODE] == null) preferences[FRIEND_CODE] = newCode
+            if (preferences[DISPLAY_NAME] == null) preferences[DISPLAY_NAME] = "Me"
+        }
+        return friendIdentityFlow.first() ?: FriendIdentity(newId, "Me", newCode)
+    }
+
+    suspend fun updateDisplayName(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[DISPLAY_NAME] = name.trim().ifEmpty { "Me" }
+        }
+    }
+
+    private fun generateFriendCode(): String {
+        // Avoid ambiguous chars (0/O, 1/I) for easy sharing.
+        val alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        val uuid = UUID.randomUUID().toString().replace("-", "")
+        return (0 until 6).joinToString("") { i ->
+            val chunk = uuid.substring(i * 2, i * 2 + 2)
+            alphabet[chunk.toInt(16) % alphabet.length].toString()
+        }
     }
 
     suspend fun updateLastActivityTimestamp(timestamp: Long) {

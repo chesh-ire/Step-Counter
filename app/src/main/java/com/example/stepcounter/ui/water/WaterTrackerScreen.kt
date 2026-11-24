@@ -31,7 +31,7 @@ fun WaterTrackerScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit,
-    onNavigateToRunning: () -> Unit,
+    onNavigateToFriends: () -> Unit,
     onNavigateToStats: () -> Unit,
     onNavigateToGoals: () -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -69,7 +69,7 @@ fun WaterTrackerScreen(
             BottomNavigationBar(
                 currentRoute = "water",
                 onHome = onNavigateToHome,
-                onRunning = onNavigateToRunning,
+                onFriends = onNavigateToFriends,
                 onWater = {},
                 onStats = onNavigateToStats,
                 onGoals = onNavigateToGoals,

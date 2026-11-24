@@ -1,7 +1,6 @@
 package com.example.stepcounter.ui.components
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.DirectionsRun
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -14,7 +13,7 @@ import com.example.stepcounter.ui.theme.*
 fun BottomNavigationBar(
     currentRoute: String,
     onHome: () -> Unit,
-    onRunning: () -> Unit,
+    onFriends: () -> Unit,
     onWater: () -> Unit,
     onStats: () -> Unit,
     onGoals: () -> Unit,
@@ -39,10 +38,10 @@ fun BottomNavigationBar(
             )
         )
         NavigationBarItem(
-            selected = currentRoute == "running",
-            onClick = onRunning,
-            icon = { Icon(Icons.AutoMirrored.Rounded.DirectionsRun, contentDescription = null) },
-            label = { Text("Run", fontSize = 10.sp) },
+            selected = currentRoute == "friends",
+            onClick = onFriends,
+            icon = { Icon(Icons.Rounded.Groups, contentDescription = null) },
+            label = { Text("Friends", fontSize = 10.sp) },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = AccentCyan,
                 selectedTextColor = AccentCyan,

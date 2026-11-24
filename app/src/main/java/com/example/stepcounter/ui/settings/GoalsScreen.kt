@@ -30,7 +30,7 @@ fun GoalsScreen(
     onBack: () -> Unit,
     onSave: (UserGoals) -> Unit,
     onNavigateToHome: () -> Unit = {},
-    onNavigateToRunning: () -> Unit = {},
+    onNavigateToFriends: () -> Unit = {},
     onNavigateToWater: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {}
@@ -58,7 +58,7 @@ fun GoalsScreen(
             BottomNavigationBar(
                 currentRoute = "goals",
                 onHome = onNavigateToHome,
-                onRunning = onNavigateToRunning,
+                onFriends = onNavigateToFriends,
                 onWater = onNavigateToWater,
                 onStats = onNavigateToStats,
                 onGoals = {},

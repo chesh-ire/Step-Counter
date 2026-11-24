@@ -51,7 +51,7 @@ fun RunningScreen(
             BottomNavigationBar(
                 currentRoute = "running",
                 onHome = onNavigateToHome,
-                onRunning = {},
+                onFriends = {},
                 onWater = onNavigateToWater,
                 onStats = onNavigateToStats,
                 onGoals = onNavigateToGoals,

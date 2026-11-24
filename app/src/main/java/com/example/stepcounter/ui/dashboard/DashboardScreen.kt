@@ -32,7 +32,7 @@ import java.util.*
 @Composable
 fun DashboardScreen(
     viewModel: MainViewModel,
-    onNavigateToRunning: () -> Unit,
+    onNavigateToFriends: () -> Unit,
     onNavigateToWater: () -> Unit,
     onNavigateToAnalytics: () -> Unit,
     onSetGoals: () -> Unit,
@@ -69,7 +69,7 @@ fun DashboardScreen(
             BottomNavigationBar(
                 currentRoute = "home",
                 onHome = {},
-                onRunning = onNavigateToRunning,
+                onFriends = onNavigateToFriends,
                 onWater = onNavigateToWater,
                 onStats = onNavigateToAnalytics,
                 onGoals = onSetGoals,
@@ -82,7 +82,8 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             item { Spacer(modifier = Modifier.height(20.dp)) }
 

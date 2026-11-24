@@ -41,7 +41,7 @@ fun AnalyticsScreen(
     viewModel: MainViewModel,
     onBack: () -> Unit,
     onNavigateToHome: () -> Unit,
-    onNavigateToRunning: () -> Unit,
+    onNavigateToFriends: () -> Unit,
     onNavigateToWater: () -> Unit,
     onNavigateToGoals: () -> Unit,
     onNavigateToProfile: () -> Unit,
@@ -85,7 +85,7 @@ fun AnalyticsScreen(
             BottomNavigationBar(
                 currentRoute = "stats",
                 onHome = onNavigateToHome,
-                onRunning = onNavigateToRunning,
+                onFriends = onNavigateToFriends,
                 onWater = onNavigateToWater,
                 onStats = {},
                 onGoals = onNavigateToGoals,

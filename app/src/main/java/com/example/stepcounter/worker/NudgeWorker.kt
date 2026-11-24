@@ -1,10 +1,13 @@
 package com.example.stepcounter.worker
 
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.stepcounter.MainActivity
 import com.example.stepcounter.R
 import com.example.stepcounter.StepCounterApp
 import kotlinx.coroutines.flow.first
@@ -27,11 +30,22 @@ class NudgeWorker(
             val notificationManager =
                 applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+            val launchIntent = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val contentIntent = PendingIntent.getActivity(
+                applicationContext,
+                0,
+                launchIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
             val notification = NotificationCompat.Builder(applicationContext, StepCounterApp.CHANNEL_ID)
                 .setContentTitle("Stay Active!")
                 .setContentText("You haven't moved in an hour! Try to get some steps in and stay hydrated.")
                 .setSmallIcon(R.drawable.placeholder)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setContentIntent(contentIntent)
                 .setAutoCancel(true)
                 .build()
 

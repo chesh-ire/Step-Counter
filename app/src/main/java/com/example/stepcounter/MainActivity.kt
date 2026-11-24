@@ -17,6 +17,7 @@ import com.example.stepcounter.service.StepCounterService
 import com.example.stepcounter.ui.MainViewModel
 import com.example.stepcounter.ui.analytics.AnalyticsScreen
 import com.example.stepcounter.ui.dashboard.DashboardScreen
+import com.example.stepcounter.ui.friends.FriendsScreen
 import com.example.stepcounter.ui.logging.FoodLoggingDialog
 import com.example.stepcounter.ui.logging.WaterLoggingDialog
 import com.example.stepcounter.ui.logging.WeightLoggingDialog
@@ -37,7 +38,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val app = application as StepCounterApp
             val viewModel: MainViewModel = viewModel(
-                factory = MainViewModel.Factory(app.repository, app.goalPreferences)
+                factory = MainViewModel.Factory(app.repository, app.goalPreferences, app.friendsRepository)
             )
             
             val userGoals by viewModel.userGoals.collectAsStateWithLifecycle()
@@ -96,7 +97,7 @@ class MainActivity : ComponentActivity() {
             composable("home") {
                 DashboardScreen(
                     viewModel = viewModel,
-                    onNavigateToRunning = { navController.navigate("running") },
+                    onNavigateToFriends = { navController.navigate("friends") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToAnalytics = { navController.navigate("stats") },
                     onSetGoals = { navController.navigate("goals") },
@@ -104,6 +105,17 @@ class MainActivity : ComponentActivity() {
                     onLogFood = { showFoodDialog = true }
                 )
             }
+            composable("friends") {
+                FriendsScreen(
+                    viewModel = viewModel,
+                    onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
+                    onNavigateToStats = { navController.navigate("stats") },
+                    onNavigateToWater = { navController.navigate("water") },
+                    onNavigateToGoals = { navController.navigate("goals") },
+                    onNavigateToProfile = { /* TODO */ }
+                )
+            }
+            /* Running tab disabled for the Friends Race pivot — kept for reference.
             composable("running") {
                 RunningScreen(
                     viewModel = viewModel,
@@ -114,12 +126,13 @@ class MainActivity : ComponentActivity() {
                     onNavigateToProfile = { /* TODO */ }
                 )
             }
+            */
             composable("stats") {
                 AnalyticsScreen(
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() },
                     onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
-                    onNavigateToRunning = { navController.navigate("running") },
+                    onNavigateToFriends = { navController.navigate("friends") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToGoals = { navController.navigate("goals") },
                     onNavigateToProfile = { /* TODO */ },
@@ -131,7 +144,7 @@ class MainActivity : ComponentActivity() {
                     viewModel = viewModel,
                     onBack = { navController.popBackStack() },
                     onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
-                    onNavigateToRunning = { navController.navigate("running") },
+                    onNavigateToFriends = { navController.navigate("friends") },
                     onNavigateToStats = { navController.navigate("stats") },
                     onNavigateToGoals = { navController.navigate("goals") },
                     onNavigateToProfile = { /* TODO */ },
@@ -151,7 +164,7 @@ class MainActivity : ComponentActivity() {
                         navController.popBackStack()
                     },
                     onNavigateToHome = { navController.navigate("home") { popUpTo("home") { inclusive = true } } },
-                    onNavigateToRunning = { navController.navigate("running") },
+                    onNavigateToFriends = { navController.navigate("friends") },
                     onNavigateToWater = { navController.navigate("water") },
                     onNavigateToStats = { navController.navigate("stats") },
                     onNavigateToProfile = { /* TODO */ }

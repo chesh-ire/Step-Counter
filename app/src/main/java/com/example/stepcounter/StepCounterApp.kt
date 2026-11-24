@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.stepcounter.data.local.AppDatabase
 import com.example.stepcounter.data.preferences.GoalPreferences
+import com.example.stepcounter.data.repository.FriendsRepository
 import com.example.stepcounter.data.repository.HealthRepository
 import com.example.stepcounter.worker.NudgeWorker
 import java.util.concurrent.TimeUnit
@@ -28,6 +29,7 @@ class StepCounterApp : Application() {
         )
     }
     val goalPreferences by lazy { GoalPreferences(this) }
+    val friendsRepository by lazy { FriendsRepository() }
 
     override fun onCreate() {
         super.onCreate()
