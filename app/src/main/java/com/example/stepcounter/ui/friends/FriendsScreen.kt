@@ -86,7 +86,6 @@ fun FriendsScreen(
                 is AddFriendResult.Error -> "Couldn't add friend: ${result.message}"
             }
             snackbarHostState.showSnackbar(msg)
-            if (result is AddFriendResult.Success) showAddDialog = false
             viewModel.clearAddFriendResult()
         }
     }
@@ -485,6 +484,7 @@ private fun AddFriendDialog(
                 onClick = {
                     if (nameInput.isNotBlank() && nameInput != myName) onRename(nameInput)
                     if (codeInput.isNotBlank()) onAdd(codeInput)
+                    onDismiss()
                 },
                 enabled = codeInput.isNotBlank() || (nameInput.isNotBlank() && nameInput != myName)
             ) {

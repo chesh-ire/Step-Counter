@@ -83,13 +83,17 @@ class MainActivity : ComponentActivity() {
             null
         }
 
-        LaunchedEffect(activityRecognitionPermission?.status, notificationPermission?.status) {
-            if (activityRecognitionPermission?.status?.isGranted != false && 
-                notificationPermission?.status?.isGranted != false) {
+        LaunchedEffect(activityRecognitionPermission?.status) {
+            if (activityRecognitionPermission?.status?.isGranted != false) {
                 startStepCounterService()
             } else {
                 activityRecognitionPermission?.launchPermissionRequest()
-                notificationPermission?.launchPermissionRequest()
+            }
+        }
+        
+        LaunchedEffect(notificationPermission?.status) {
+            if (notificationPermission?.status?.isGranted == false) {
+                notificationPermission.launchPermissionRequest()
             }
         }
 
