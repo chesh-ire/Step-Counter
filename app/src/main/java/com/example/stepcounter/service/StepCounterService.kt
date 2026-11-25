@@ -33,6 +33,8 @@ class StepCounterService : Service(), SensorEventListener {
     private var lastUpdateDate = -1L
     private var currentHour = -1
 
+    private var caloriesAccumulator = 0.0
+
     private val midnightReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == Intent.ACTION_DATE_CHANGED || intent?.action == Intent.ACTION_TIME_CHANGED) {
@@ -133,10 +135,14 @@ class StepCounterService : Service(), SensorEventListener {
             val repository = (application as StepCounterApp).repository
             repository.updateSteps(totalSteps)
             repository.updateHourlySteps(stepsInHour)
-            
-            val caloriesBurned = (deltaSteps * 0.04).toInt()
+
+            // Accumulate fractional calories and only commit whole numbers, carrying
+            // the remainder forward. Avoids truncating every small step delta to 0.
+            caloriesAccumulator += deltaSteps * CALORIES_PER_STEP
+            val caloriesBurned = caloriesAccumulator.toInt()
             if (caloriesBurned > 0) {
                 repository.addCalorie(caloriesBurned, CalorieType.BURNED)
+                caloriesAccumulator -= caloriesBurned
             }
         }
     }
@@ -175,5 +181,6 @@ class StepCounterService : Service(), SensorEventListener {
 
     companion object {
         private const val NOTIFICATION_ID = 1
+        private const val CALORIES_PER_STEP = 0.04
     }
 }
