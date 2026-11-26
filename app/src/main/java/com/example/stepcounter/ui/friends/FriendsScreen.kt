@@ -56,6 +56,7 @@ fun FriendsScreen(
     val addResult by viewModel.addFriendResult.collectAsStateWithLifecycle()
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Confetti when my rank improves (I overtake a friend).
@@ -159,7 +160,8 @@ fun FriendsScreen(
                     LeaderboardRow(
                         profile = profile,
                         rank = rank,
-                        maxSteps = maxSteps
+                        maxSteps = maxSteps,
+                        onEdit = if (profile.isMe) ({ showRenameDialog = true }) else null
                     )
                 }
 
@@ -181,10 +183,77 @@ fun FriendsScreen(
             onDismiss = { showAddDialog = false }
         )
     }
+
+    if (showRenameDialog) {
+        RenameDialog(
+            currentName = identity?.displayName ?: "Me",
+            onRename = { viewModel.setDisplayName(it) },
+            onDismiss = { showRenameDialog = false }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RenameDialog(
+    currentName: String,
+    onRename: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var nameInput by remember { mutableStateOf(currentName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardNavy,
+        titleContentColor = TextWhite,
+        textContentColor = TextGray,
+        title = { Text("Edit your name", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text(
+                    "This is how you'll appear to friends on the leaderboard.",
+                    color = TextGray,
+                    fontSize = 13.sp
+                )
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = nameInput,
+                    onValueChange = { nameInput = it.take(20) },
+                    label = { Text("Display name") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentCyan,
+                        unfocusedBorderColor = TextGray,
+                        focusedLabelColor = AccentCyan,
+                        unfocusedLabelColor = TextGray,
+                        focusedTextColor = TextWhite,
+                        unfocusedTextColor = TextWhite,
+                        cursorColor = AccentCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val trimmed = nameInput.trim()
+                    if (trimmed.isNotBlank() && trimmed != currentName) onRename(trimmed)
+                    onDismiss()
+                },
+                enabled = nameInput.isNotBlank() && nameInput.trim() != currentName
+            ) {
+                Text("Save", color = AccentCyan, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = TextGray) }
+        }
+    )
 }
 
 @Composable
-private fun LeaderboardRow(profile: FriendProfile, rank: Int, maxSteps: Int) {
+private fun LeaderboardRow(profile: FriendProfile, rank: Int, maxSteps: Int, onEdit: (() -> Unit)? = null) {
     val targetFraction = (profile.steps.toFloat() / maxSteps).coerceIn(0f, 1f)
     val animatedFraction by animateFloatAsState(
         targetValue = targetFraction,
@@ -231,6 +300,18 @@ private fun LeaderboardRow(profile: FriendProfile, rank: Int, maxSteps: Int) {
                         if (isLive) {
                             Spacer(Modifier.width(6.dp))
                             LiveDot()
+                        }
+                        if (onEdit != null) {
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = "Edit your name",
+                                tint = AccentCyan,
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .clip(CircleShape)
+                                    .clickable(onClick = onEdit)
+                            )
                         }
                     }
                     Text(
