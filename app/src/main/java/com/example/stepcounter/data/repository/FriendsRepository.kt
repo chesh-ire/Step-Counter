@@ -6,12 +6,15 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.util.UUID
 import kotlin.coroutines.resume
 
 /** One competitor on the live leaderboard. */
@@ -31,6 +34,31 @@ sealed class AddFriendResult {
     object Self : AddFriendResult()
     object AlreadyFriend : AddFriendResult()
     data class Error(val message: String) : AddFriendResult()
+}
+
+/**
+ * A group whose members all share a single leaderboard. Unlike friends (which are
+ * pairwise), a group is one shared roster: adding someone once makes them visible to
+ * every other member, so members never have to add each other individually.
+ */
+data class StepGroup(
+    val id: String,
+    val name: String,
+    val code: String,
+    val createdBy: String,
+    val memberIds: Set<String>
+) {
+    fun isCreator(userId: String): Boolean = createdBy == userId
+}
+
+sealed class GroupResult {
+    data class Created(val group: StepGroup) : GroupResult()
+    data class Joined(val name: String) : GroupResult()
+    data class MemberAdded(val name: String) : GroupResult()
+    object NotFound : GroupResult()
+    object AlreadyMember : GroupResult()
+    object NotAllowed : GroupResult()
+    data class Error(val message: String) : GroupResult()
 }
 
 /**
@@ -166,6 +194,174 @@ class FriendsRepository {
             ref.addValueEventListener(listener)
             awaitClose { ref.removeEventListener(listener) }
         }
+
+    // ---------------- Groups ----------------
+
+    /** Create a new group owned by me. I'm added as the first member. */
+    suspend fun createGroup(myId: String, rawName: String): GroupResult {
+        val root = db ?: return GroupResult.Error("Not connected")
+        val name = rawName.trim().ifEmpty { "My Group" }
+        return try {
+            val groupId = root.child("groups").push().key
+                ?: return GroupResult.Error("Couldn't create group")
+            val code = generateGroupCode()
+            root.updateChildrenAwait(
+                hashMapOf(
+                    "/groups/$groupId/name" to name,
+                    "/groups/$groupId/code" to code,
+                    "/groups/$groupId/createdBy" to myId,
+                    "/groups/$groupId/members/$myId" to true,
+                    "/groupCodes/$code" to groupId,
+                    "/users/$myId/groups/$groupId" to true
+                )
+            )
+            GroupResult.Created(StepGroup(groupId, name, code, myId, setOf(myId)))
+        } catch (e: Exception) {
+            Log.w(TAG, "createGroup failed", e)
+            GroupResult.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    /** Add a friend to a group. Only the group's creator is allowed to do this. */
+    suspend fun addMemberToGroup(groupId: String, requesterId: String, friendId: String): GroupResult {
+        val root = db ?: return GroupResult.Error("Not connected")
+        return try {
+            val createdBy = root.child("groups").child(groupId).child("createdBy")
+                .readOnce().getValue(String::class.java)
+                ?: return GroupResult.NotFound
+            if (createdBy != requesterId) return GroupResult.NotAllowed
+
+            val existing = root.child("groups").child(groupId).child("members").child(friendId)
+                .readOnce().getValue(Boolean::class.java)
+            if (existing == true) return GroupResult.AlreadyMember
+
+            val name = root.child("users").child(friendId).child("name")
+                .readOnce().getValue(String::class.java) ?: "Friend"
+
+            root.updateChildrenAwait(
+                hashMapOf(
+                    "/groups/$groupId/members/$friendId" to true,
+                    "/users/$friendId/groups/$groupId" to true
+                )
+            )
+            GroupResult.MemberAdded(name)
+        } catch (e: Exception) {
+            Log.w(TAG, "addMemberToGroup failed", e)
+            GroupResult.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    /** Join an existing group by its share code. */
+    suspend fun joinGroupByCode(myId: String, rawCode: String): GroupResult {
+        val root = db ?: return GroupResult.Error("Not connected")
+        val code = rawCode.trim().uppercase()
+        if (code.isEmpty()) return GroupResult.NotFound
+        return try {
+            val groupId = root.child("groupCodes").child(code).readOnce()
+                .getValue(String::class.java) ?: return GroupResult.NotFound
+
+            val existing = root.child("groups").child(groupId).child("members").child(myId)
+                .readOnce().getValue(Boolean::class.java)
+            if (existing == true) return GroupResult.AlreadyMember
+
+            val name = root.child("groups").child(groupId).child("name")
+                .readOnce().getValue(String::class.java) ?: "Group"
+
+            root.updateChildrenAwait(
+                hashMapOf(
+                    "/groups/$groupId/members/$myId" to true,
+                    "/users/$myId/groups/$groupId" to true
+                )
+            )
+            GroupResult.Joined(name)
+        } catch (e: Exception) {
+            Log.w(TAG, "joinGroupByCode failed", e)
+            GroupResult.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    /** Live list of the groups I belong to. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observeMyGroups(myId: String): Flow<List<StepGroup>> {
+        val root = db ?: return flowOf(emptyList())
+        return observeChildKeys(root.child("users").child(myId).child("groups"))
+            .flatMapLatest { groupIds ->
+                if (groupIds.isEmpty()) flowOf(emptyList())
+                else combine(groupIds.map { gid -> observeGroup(root, gid) }) { groups ->
+                    groups.filterNotNull().sortedBy { it.name.lowercase() }
+                }
+            }
+    }
+
+    /**
+     * Live leaderboard for a single group: all its members, newest step counts first.
+     * My own row is flagged so the UI can highlight it.
+     */
+    fun observeGroupLeaderboard(myId: String, groupId: String): Flow<List<FriendProfile>> {
+        val root = db ?: return flowOf(emptyList())
+        return combine(
+            observeChildKeys(root.child("groups").child(groupId).child("members")),
+            observeAllUsers(root)
+        ) { memberIds, allUsers ->
+            allUsers
+                .filter { it.id in memberIds }
+                .map { if (it.id == myId) it.copy(isMe = true) else it }
+                .sortedByDescending { it.steps }
+        }
+    }
+
+    private fun observeGroup(root: DatabaseReference, groupId: String): Flow<StepGroup?> =
+        callbackFlow {
+            val ref = root.child("groups").child(groupId)
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    if (!snapshot.exists()) {
+                        trySend(null)
+                        return
+                    }
+                    trySend(
+                        StepGroup(
+                            id = groupId,
+                            name = snapshot.child("name").getValue(String::class.java) ?: "Group",
+                            code = snapshot.child("code").getValue(String::class.java) ?: "",
+                            createdBy = snapshot.child("createdBy").getValue(String::class.java) ?: "",
+                            memberIds = snapshot.child("members").children
+                                .mapNotNull { it.key }.toSet()
+                        )
+                    )
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    trySend(null)
+                }
+            }
+            ref.addValueEventListener(listener)
+            awaitClose { ref.removeEventListener(listener) }
+        }
+
+    /** Streams the set of child keys under [ref] (used for member/group id lists). */
+    private fun observeChildKeys(ref: DatabaseReference): Flow<Set<String>> =
+        callbackFlow {
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    trySend(snapshot.children.mapNotNull { it.key }.toSet())
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    trySend(emptySet())
+                }
+            }
+            ref.addValueEventListener(listener)
+            awaitClose { ref.removeEventListener(listener) }
+        }
+
+    /** Short, unambiguous share code for a group (same alphabet as friend codes). */
+    private fun generateGroupCode(): String {
+        val alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        val uuid = UUID.randomUUID().toString().replace("-", "")
+        return (0 until 6).joinToString("") { i ->
+            val chunk = uuid.substring(i * 2, i * 2 + 2)
+            alphabet[chunk.toInt(16) % alphabet.length].toString()
+        }
+    }
 
     companion object {
         private const val TAG = "FriendsRepository"

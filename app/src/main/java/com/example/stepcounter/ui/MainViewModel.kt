@@ -10,6 +10,8 @@ import com.example.stepcounter.data.preferences.UserGoals
 import com.example.stepcounter.data.repository.AddFriendResult
 import com.example.stepcounter.data.repository.FriendProfile
 import com.example.stepcounter.data.repository.FriendsRepository
+import com.example.stepcounter.data.repository.GroupResult
+import com.example.stepcounter.data.repository.StepGroup
 import com.example.stepcounter.data.repository.HealthRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -143,6 +145,42 @@ class MainViewModel(
         patched.sortedByDescending { it.steps }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // ---------------- Groups ----------------
+
+    private val _groupActionResult = MutableStateFlow<GroupResult?>(null)
+    val groupActionResult: StateFlow<GroupResult?> = _groupActionResult.asStateFlow()
+
+    /** Which group's leaderboard is currently being viewed (null = none selected). */
+    private val _selectedGroupId = MutableStateFlow<String?>(null)
+    val selectedGroupId: StateFlow<String?> = _selectedGroupId.asStateFlow()
+
+    /** The groups I belong to, streamed live. */
+    val myGroups: StateFlow<List<StepGroup>> = _friendIdentity
+        .flatMapLatest { identity ->
+            if (identity == null) flowOf(emptyList())
+            else friendsRepository.observeMyGroups(identity.userId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val remoteGroupLeaderboard: StateFlow<List<FriendProfile>> =
+        combine(_friendIdentity, _selectedGroupId) { identity, groupId -> identity to groupId }
+            .flatMapLatest { (identity, groupId) ->
+                if (identity == null || groupId == null) flowOf(emptyList())
+                else friendsRepository.observeGroupLeaderboard(identity.userId, groupId)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Selected group's leaderboard, with my own row patched to my live local steps. */
+    val groupLeaderboard: StateFlow<List<FriendProfile>> = combine(
+        remoteGroupLeaderboard, todaySteps, _friendIdentity
+    ) { remote, mySteps, identity ->
+        if (identity == null) return@combine remote
+        remote.map { profile ->
+            if (profile.isMe) profile.copy(steps = maxOf(profile.steps, mySteps), name = identity.displayName)
+            else profile
+        }.sortedByDescending { it.steps }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         viewModelScope.launch {
             repository.preseedFoodDatabase()
@@ -186,6 +224,41 @@ class MainViewModel(
             goalPreferences.updateDisplayName(name)
             _friendIdentity.value = goalPreferences.ensureFriendIdentity()
         }
+    }
+
+    // ---------------- Group actions ----------------
+
+    fun selectGroup(groupId: String?) {
+        _selectedGroupId.value = groupId
+    }
+
+    fun createGroup(name: String) {
+        val identity = _friendIdentity.value ?: return
+        viewModelScope.launch {
+            val result = friendsRepository.createGroup(identity.userId, name)
+            _groupActionResult.value = result
+            if (result is GroupResult.Created) _selectedGroupId.value = result.group.id
+        }
+    }
+
+    fun joinGroup(code: String) {
+        val identity = _friendIdentity.value ?: return
+        viewModelScope.launch {
+            _groupActionResult.value = friendsRepository.joinGroupByCode(identity.userId, code)
+        }
+    }
+
+    /** Only the group creator may add members; the repository enforces this. */
+    fun addFriendToGroup(groupId: String, friendId: String) {
+        val identity = _friendIdentity.value ?: return
+        viewModelScope.launch {
+            _groupActionResult.value =
+                friendsRepository.addMemberToGroup(groupId, identity.userId, friendId)
+        }
+    }
+
+    fun clearGroupActionResult() {
+        _groupActionResult.value = null
     }
 
     fun startRun() {
